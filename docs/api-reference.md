@@ -4,10 +4,10 @@ This document provides a detailed reference for the Ollama API endpoints support
 
 ## General Information
 
--   **Base URL**: `http://<host>:<port>`
--   **Default Port**: `11434`
--   **Authentication**: All requests require a valid OpenRouter API key configured on the proxy server
--   **Content-Type**: All POST requests should use `Content-Type: application/json`
+- **Base URL**: `http://<host>:<port>`
+- **Default Port**: `11434`
+- **Authentication**: All requests require a valid OpenRouter API key configured on the proxy server
+- **Content-Type**: All POST requests should use `Content-Type: application/json`
 
 ## Supported Endpoints
 
@@ -17,7 +17,8 @@ This document provides a detailed reference for the Ollama API endpoints support
 
 Returns a simple health check message to confirm that the server is running.
 
--   **Success Response (200 OK)**:
+- **Success Response (200 OK)**:
+
     ```
     Ollama is running
     ```
@@ -26,7 +27,8 @@ Returns a simple health check message to confirm that the server is running.
 
 Returns the version of the proxy.
 
--   **Success Response (200 OK)**:
+- **Success Response (200 OK)**:
+
     ```json
     {
       "version": "0.1.0-openrouter"
@@ -37,7 +39,8 @@ Returns the version of the proxy.
 
 Returns detailed health information about the proxy.
 
--   **Success Response (200 OK)**:
+- **Success Response (200 OK)**:
+
     ```json
     {
       "status": "healthy",
@@ -56,7 +59,8 @@ Returns detailed health information about the proxy.
 
 Returns metrics for monitoring and observability.
 
--   **Success Response (200 OK)**:
+- **Success Response (200 OK)**:
+
     ```json
     {
       "metrics": [...],
@@ -71,7 +75,8 @@ Returns metrics for monitoring and observability.
 
 Lists all available models that are accessible through the proxy. The list is fetched from OpenRouter and can be filtered using the [model filter configuration](CONFIGURATION.md#model-filtering).
 
--   **Success Response (200 OK)**:
+- **Success Response (200 OK)**:
+
     ```json
     {
       "models": [
@@ -96,13 +101,16 @@ Lists all available models that are accessible through the proxy. The list is fe
 
 Provides detailed information about a specific model. Note that much of the information is stubbed since it is not available from the OpenRouter API.
 
--   **Request Body**:
+- **Request Body**:
+
     ```json
     {
       "name": "google/gemini-pro:latest"
     }
     ```
--   **Success Response (200 OK)**:
+
+- **Success Response (200 OK)**:
+
     ```json
     {
       "license": "",
@@ -128,7 +136,8 @@ Provides detailed information about a specific model. Note that much of the info
 
 Handles chat completion requests. This is the primary endpoint for interacting with models.
 
--   **Request Body**:
+- **Request Body**:
+
     ```json
     {
       "model": "google/gemini-pro:latest",
@@ -149,7 +158,9 @@ Handles chat completion requests. This is the primary endpoint for interacting w
       }
     }
     ```
--   **Response (Non-streaming)**:
+
+- **Response (Non-streaming)**:
+
     ```json
     {
       "model": "google/gemini-pro:latest",
@@ -167,7 +178,9 @@ Handles chat completion requests. This is the primary endpoint for interacting w
       "eval_duration": 0
     }
     ```
--   **Response (Streaming)**: A stream of JSON objects, each representing a token or a final summary.
+
+- **Response (Streaming)**: A stream of JSON objects, each representing a token or a final summary.
+
     ```json
     {"model":"google/gemini-pro:latest","created_at":"2023-12-12T14:00:00Z","message":{"role":"assistant","content":"The"},"done":false}
     {"model":"google/gemini-pro:latest","created_at":"2023-12-12T14:00:00Z","message":{"role":"assistant","content":" sky"},"done":false}
@@ -184,7 +197,8 @@ Handles chat completion requests. This is the primary endpoint for interacting w
 
 Handles text generation requests (a simpler version of `/api/chat`).
 
--   **Request Body**:
+- **Request Body**:
+
     ```json
     {
       "model": "google/gemini-pro:latest",
@@ -196,7 +210,9 @@ Handles text generation requests (a simpler version of `/api/chat`).
       }
     }
     ```
--   **Response (Non-streaming)**:
+
+- **Response (Non-streaming)**:
+
     ```json
     {
       "model": "google/gemini-pro:latest",
@@ -212,7 +228,9 @@ Handles text generation requests (a simpler version of `/api/chat`).
       "eval_duration": 0
     }
     ```
--   **Response (Streaming)**: A stream of JSON objects.
+
+- **Response (Streaming)**: A stream of JSON objects.
+
     ```json
     {"model":"google/gemini-pro:latest","created_at":"2023-12-12T14:00:00Z","response":" there","done":false}
     {"model":"google/gemini-pro:latest","created_at":"2023-12-12T14:00:00Z","response":" was","done":false}
@@ -228,21 +246,26 @@ Handles text generation requests (a simpler version of `/api/chat`).
 
 Generates embeddings for a given input. Both endpoints are supported for compatibility.
 
--   **Request Body for `/api/embed`**:
+- **Request Body for `/api/embed`**:
+
     ```json
     {
       "model": "text-embedding-ada-002",
       "input": "This is a test sentence."
     }
     ```
--   **Request Body for `/api/embeddings`**:
+
+- **Request Body for `/api/embeddings`**:
+
     ```json
     {
       "model": "text-embedding-ada-002",
       "prompt": "This is a test sentence."
     }
     ```
--   **Success Response (200 OK)**:
+
+- **Success Response (200 OK)**:
+
     ```json
     {
       "embedding": [0.1, 0.2, 0.3, ...]
@@ -255,7 +278,8 @@ Generates embeddings for a given input. Both endpoints are supported for compati
 
 Lists running models (stubbed implementation).
 
--   **Success Response (200 OK)**:
+- **Success Response (200 OK)**:
+
     ```json
     {
       "models": [],
@@ -268,6 +292,7 @@ Lists running models (stubbed implementation).
 The proxy returns standardized error responses for various conditions:
 
 ### Model Not Found (404)
+
 ```json
 {
   "error": "Model 'nonexistent-model' not found.",
@@ -276,6 +301,7 @@ The proxy returns standardized error responses for various conditions:
 ```
 
 ### Model Forbidden (403)
+
 ```json
 {
   "error": "Model 'forbidden-model' is not allowed by the filter.",
@@ -284,6 +310,7 @@ The proxy returns standardized error responses for various conditions:
 ```
 
 ### OpenRouter API Error (502)
+
 ```json
 {
   "error": "OpenRouter API error: 401 Unauthorized",
@@ -292,6 +319,7 @@ The proxy returns standardized error responses for various conditions:
 ```
 
 ### Internal Server Error (500)
+
 ```json
 {
   "error": "Internal server error",
@@ -303,12 +331,12 @@ The proxy returns standardized error responses for various conditions:
 
 The following Ollama API endpoints are not supported by the proxy and will return an `HTTP 501 Not Implemented` error:
 
--   `POST /api/create`
--   `POST /api/copy`
--   `DELETE /api/delete`
--   `POST /api/pull`
--   `POST /api/push`
--   `POST /api/blobs/{digest}`
--   `HEAD /api/blobs/{digest}`
+- `POST /api/create`
+- `POST /api/copy`
+- `DELETE /api/delete`
+- `POST /api/pull`
+- `POST /api/push`
+- `POST /api/blobs/{digest}`
+- `HEAD /api/blobs/{digest}`
 
 These endpoints are related to local model management, which is not applicable when using the OpenRouter proxy.

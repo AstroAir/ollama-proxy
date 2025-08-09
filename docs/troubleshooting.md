@@ -11,6 +11,7 @@ If you get a `Connection refused` error when trying to connect to the proxy, it 
 **Diagnostic Steps:**
 
 1. **Check if the proxy is running**:
+
    ```bash
    # If running with Docker
    docker ps | grep ollama-proxy
@@ -23,6 +24,7 @@ If you get a `Connection refused` error when trying to connect to the proxy, it 
    ```
 
 2. **Verify the port is listening**:
+
    ```bash
    # Check if the port is open
    netstat -tlnp | grep :11434
@@ -35,6 +37,7 @@ If you get a `Connection refused` error when trying to connect to the proxy, it 
    ```
 
 3. **Test local connectivity**:
+
    ```bash
    # Test basic connectivity
    curl -v http://localhost:11434/
@@ -45,10 +48,11 @@ If you get a `Connection refused` error when trying to connect to the proxy, it 
 
 **Solutions:**
 
--   **The proxy is not running**: Make sure you have started the proxy server. You can check the logs to confirm it is running.
--   **Incorrect host or port**: Ensure that your client is configured to connect to the correct host and port. The default is `http://localhost:11434`.
--   **Firewall issues**: A firewall on your system or network might be blocking the connection. Check your firewall settings to ensure that the port is open.
--   **Docker networking issues**: If using Docker, ensure the container is properly exposing the port:
+- **The proxy is not running**: Make sure you have started the proxy server. You can check the logs to confirm it is running.
+- **Incorrect host or port**: Ensure that your client is configured to connect to the correct host and port. The default is `http://localhost:11434`.
+- **Firewall issues**: A firewall on your system or network might be blocking the connection. Check your firewall settings to ensure that the port is open.
+- **Docker networking issues**: If using Docker, ensure the container is properly exposing the port:
+
     ```bash
     # Check port mapping
     docker port ollama-proxy-container
@@ -67,17 +71,20 @@ This error typically indicates network connectivity issues.
 **Diagnostic Steps:**
 
 1. **Test internet connectivity**:
+
    ```bash
    ping openrouter.ai
    ```
 
 2. **Test DNS resolution**:
+
    ```bash
    nslookup openrouter.ai
    dig openrouter.ai
    ```
 
 3. **Test direct OpenRouter connectivity**:
+
    ```bash
    curl -H "Authorization: Bearer $OPENROUTER_API_KEY" \
      https://openrouter.ai/api/v1/models
@@ -85,9 +92,9 @@ This error typically indicates network connectivity issues.
 
 **Solutions:**
 
--   **Network connectivity**: Ensure your system has internet access.
--   **DNS issues**: Try using a different DNS server (e.g., Google's 8.8.8.8).
--   **Proxy configuration**: If you're behind a corporate proxy, configure the proxy settings appropriately.
+- **Network connectivity**: Ensure your system has internet access.
+- **DNS issues**: Try using a different DNS server (e.g., Google's 8.8.8.8).
+- **Proxy configuration**: If you're behind a corporate proxy, configure the proxy settings appropriately.
 
 ## Model Errors
 
@@ -98,6 +105,7 @@ If you receive a `Model not found` error, it could be because:
 **Diagnostic Steps:**
 
 1. **List available models**:
+
    ```bash
    # Using curl
    curl http://localhost:11434/api/tags
@@ -107,12 +115,14 @@ If you receive a `Model not found` error, it could be because:
    ```
 
 2. **Check OpenRouter directly**:
+
    ```bash
    curl -H "Authorization: Bearer $OPENROUTER_API_KEY" \
      https://openrouter.ai/api/v1/models
    ```
 
 3. **Verify model filter configuration**:
+
    ```bash
    # Check if filter file exists
    cat models-filter.txt
@@ -123,9 +133,9 @@ If you receive a `Model not found` error, it could be because:
 
 **Solutions:**
 
--   **The model does not exist on OpenRouter**: Double-check the model name to ensure it is correct. You can find a list of available models on the [OpenRouter website](https://openrouter.ai/models).
--   **The model is not spelled correctly**: Model names are case-sensitive. Use the exact model name as shown in the `/api/tags` response.
--   **The model is filtered out**: If you are using a model filter file, make sure the model you are trying to use is included in the file. See the [Configuration Guide](configuration.md#model-filtering) for more details.
+- **The model does not exist on OpenRouter**: Double-check the model name to ensure it is correct. You can find a list of available models on the [OpenRouter website](https://openrouter.ai/models).
+- **The model is not spelled correctly**: Model names are case-sensitive. Use the exact model name as shown in the `/api/tags` response.
+- **The model is filtered out**: If you are using a model filter file, make sure the model you are trying to use is included in the file. See the [Configuration Guide](configuration.md#model-filtering) for more details.
 
 ### `Model is not allowed` error
 
@@ -134,23 +144,27 @@ This error means that the model you are trying to use has been blocked by the mo
 **Diagnostic Steps:**
 
 1. **Check your filter file**:
+
    ```bash
    cat models-filter.txt
    ```
 
 2. **Check proxy logs**:
+
    ```bash
    docker logs ollama-proxy-container | grep -i "not allowed"
    ```
 
 **Solutions:**
 
--   **Add the model to your filter**: Add the model to your `models-filter.txt` file.
--   **Temporarily disable filtering**: Start the proxy with an empty filter to test:
+- **Add the model to your filter**: Add the model to your `models-filter.txt` file.
+- **Temporarily disable filtering**: Start the proxy with an empty filter to test:
+
    ```bash
    ollama-proxy --models-filter ""
    ```
--   **Check filter syntax**: Ensure your filter file syntax is correct with no typos.
+
+- **Check filter syntax**: Ensure your filter file syntax is correct with no typos.
 
 ## API Key Errors
 
@@ -161,16 +175,19 @@ A `401 Unauthorized` error from the proxy indicates a problem with your OpenRout
 **Diagnostic Steps:**
 
 1. **Verify environment variable**:
+
    ```bash
    echo $OPENROUTER_API_KEY
    ```
 
 2. **Check .env file**:
+
    ```bash
    cat .env
    ```
 
 3. **Test API key directly**:
+
    ```bash
    curl -H "Authorization: Bearer $OPENROUTER_API_KEY" \
      https://openrouter.ai/api/v1/models
@@ -178,9 +195,10 @@ A `401 Unauthorized` error from the proxy indicates a problem with your OpenRout
 
 **Solutions:**
 
--   **The API key is missing**: Make sure you have set the `OPENROUTER_API_KEY` environment variable or added it to your `.env` file.
--   **The API key is invalid**: Verify that your API key is correct and has not expired. You can check your API key on the [OpenRouter website](https://openrouter.ai/keys).
--   **Key format issues**: Ensure your API key doesn't have extra spaces or quotes:
+- **The API key is missing**: Make sure you have set the `OPENROUTER_API_KEY` environment variable or added it to your `.env` file.
+- **The API key is invalid**: Verify that your API key is correct and has not expired. You can check your API key on the [OpenRouter website](https://openrouter.ai/keys).
+- **Key format issues**: Ensure your API key doesn't have extra spaces or quotes:
+
    ```env
    # Correct
    OPENROUTER_API_KEY=sk-youractualkeyhere
@@ -196,9 +214,9 @@ This error usually indicates that your API key doesn't have access to a specific
 
 **Solutions:**
 
--   **Check model availability**: Some models on OpenRouter require special access or have usage limits.
--   **Verify billing**: Ensure your OpenRouter account has valid billing information if required for the model.
--   **Try a different model**: Test with a different model to see if the issue is model-specific.
+- **Check model availability**: Some models on OpenRouter require special access or have usage limits.
+- **Verify billing**: Ensure your OpenRouter account has valid billing information if required for the model.
+- **Try a different model**: Test with a different model to see if the issue is model-specific.
 
 ## Performance Issues
 
@@ -209,11 +227,13 @@ If you are experiencing slow responses, it could be due to:
 **Diagnostic Steps:**
 
 1. **Check proxy logs for timing information**:
+
    ```bash
    docker logs ollama-proxy-container | grep -i "completed\|duration"
    ```
 
 2. **Test direct OpenRouter response time**:
+
    ```bash
    time curl -H "Authorization: Bearer $OPENROUTER_API_KEY" \
      -H "Content-Type: application/json" \
@@ -222,6 +242,7 @@ If you are experiencing slow responses, it could be due to:
    ```
 
 3. **Check system resources**:
+
    ```bash
    # Check CPU and memory usage
    top
@@ -232,32 +253,35 @@ If you are experiencing slow responses, it could be due to:
 
 **Solutions:**
 
--   **High latency to OpenRouter**: The proxy needs to make requests to the OpenRouter API, so your connection to OpenRouter can affect performance.
--   **Large models**: Larger models can take longer to generate responses. Consider using smaller models for faster responses.
--   **High server load**: If the proxy is handling a large number of concurrent requests, it may slow down. Consider:
-  - Increasing `MAX_CONCURRENT_REQUESTS` if your system can handle more
-  - Adding more proxy instances behind a load balancer
-  - Upgrading your system resources
+- **High latency to OpenRouter**: The proxy needs to make requests to the OpenRouter API, so your connection to OpenRouter can affect performance.
+- **Large models**: Larger models can take longer to generate responses. Consider using smaller models for faster responses.
+- **High server load**: If the proxy is handling a large number of concurrent requests, it may slow down. Consider:
+- Increasing `MAX_CONCURRENT_REQUESTS` if your system can handle more
+- Adding more proxy instances behind a load balancer
+- Upgrading your system resources
 
 ### High memory usage
 
 **Diagnostic Steps:**
 
 1. **Check Docker container memory usage**:
+
    ```bash
    docker stats ollama-proxy-container
    ```
 
 2. **Check system memory**:
+
    ```bash
    free -h
    ```
 
 **Solutions:**
 
--   **Model filtering**: Use model filtering to reduce the number of models loaded
--   **System resources**: Ensure your system has adequate memory
--   **Docker limits**: Set memory limits for Docker containers:
+- **Model filtering**: Use model filtering to reduce the number of models loaded
+- **System resources**: Ensure your system has adequate memory
+- **Docker limits**: Set memory limits for Docker containers:
+
    ```bash
    docker run -d -p 11434:11434 \
      -e OPENROUTER_API_KEY="your_api_key" \
@@ -311,19 +335,22 @@ curl http://localhost:11434/metrics
 **Diagnostic Steps:**
 
 1. **Check container status**:
+
    ```bash
    docker ps -a
    ```
 
 2. **Check container logs**:
+
    ```bash
    docker logs ollama-proxy-container
    ```
 
 **Solutions:**
 
--   **Configuration errors**: Check logs for configuration validation errors
--   **Port conflicts**: Ensure the port is not already in use:
+- **Configuration errors**: Check logs for configuration validation errors
+- **Port conflicts**: Ensure the port is not already in use:
+
    ```bash
    docker run -d -p 8080:11434 \  # Use different host port
      -e OPENROUTER_API_KEY="your_api_key" \
@@ -355,6 +382,7 @@ docker run -d -p 11434:11434 \
 If you suspect network issues between the proxy and OpenRouter:
 
 1. **Test connectivity from within the container**:
+
    ```bash
    docker exec -it ollama-proxy-container sh
    ping openrouter.ai
@@ -362,6 +390,7 @@ If you suspect network issues between the proxy and OpenRouter:
    ```
 
 2. **Check DNS resolution**:
+
    ```bash
    docker exec -it ollama-proxy-container cat /etc/resolv.conf
    ```
@@ -371,6 +400,7 @@ If you suspect network issues between the proxy and OpenRouter:
 Try different clients to isolate issues:
 
 1. **Direct curl requests**:
+
    ```bash
    curl http://localhost:11434/api/chat \
      -H "Content-Type: application/json" \
@@ -383,6 +413,7 @@ Try different clients to isolate issues:
    ```
 
 2. **Ollama CLI**:
+
    ```bash
    ollama run gemini-pro:latest "Hello"
    ```

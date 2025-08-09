@@ -85,10 +85,12 @@ class PerformanceStats:
     total_response_bytes: int = 0
 
     # Error tracking
-    error_counts: Dict[str, int] = field(default_factory=lambda: defaultdict(int))
+    error_counts: Dict[str, int] = field(
+        default_factory=lambda: defaultdict(int))
 
     # Recent performance samples (for percentile calculation)
-    recent_durations: deque[float] = field(default_factory=lambda: deque(maxlen=1000))
+    recent_durations: deque[float] = field(
+        default_factory=lambda: deque(maxlen=1000))
 
     def add_request(
         self,
@@ -176,7 +178,8 @@ class PerformanceStats:
             "success_rate": self.success_rate,
             "average_duration_ms": self.average_duration_ms,
             "min_duration_ms": (
-                self.min_duration_ms if self.min_duration_ms != float("inf") else 0
+                self.min_duration_ms if self.min_duration_ms != float(
+                    "inf") else 0
             ),
             "max_duration_ms": self.max_duration_ms,
             "p50_duration_ms": self.get_percentile(50),
@@ -273,7 +276,8 @@ class MetricsCollector:
                 "request_success_total", 1, base_labels, MetricType.COUNTER
             )
         else:
-            error_labels = {**base_labels, "error_type": error_type or "unknown"}
+            error_labels = {**base_labels,
+                            "error_type": error_type or "unknown"}
             self.record_metric(
                 "request_error_total", 1, error_labels, MetricType.COUNTER
             )

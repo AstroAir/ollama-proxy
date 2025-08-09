@@ -54,7 +54,8 @@ class RequestMetrics:
     response_size: int = 0
     status_code: int | None = None
     error: str | None = None
-    request_id: str = field(default_factory=lambda: f"req_{uuid.uuid4().hex[:8]}")
+    request_id: str = field(
+        default_factory=lambda: f"req_{uuid.uuid4().hex[:8]}")
     retry_count: int = 0
     cache_hit: bool = False
 
@@ -476,7 +477,8 @@ class OpenRouterClient:
             enhanced_payload["stream"] = True
 
         # Set request size for metrics
-        metrics.request_size = len(json.dumps(enhanced_payload).encode("utf-8"))
+        metrics.request_size = len(json.dumps(
+            enhanced_payload).encode("utf-8"))
 
         async with self._get_client() as client:
             try:
@@ -491,7 +493,8 @@ class OpenRouterClient:
                     return self._stream_response(response, metrics)
                 else:
                     data = response.json()
-                    metrics.response_size = len(json.dumps(data).encode("utf-8"))
+                    metrics.response_size = len(
+                        json.dumps(data).encode("utf-8"))
                     metrics.mark_complete(status_code=response.status_code)
 
                     logger.debug(

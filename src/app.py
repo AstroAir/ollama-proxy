@@ -182,7 +182,8 @@ def create_app() -> FastAPI:
 
         return JSONResponse(
             status_code=500,
-            content={"error": "Internal server error", "type": "internal_error"},
+            content={"error": "Internal server error",
+                     "type": "internal_error"},
         )
 
     # Include API routes

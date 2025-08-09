@@ -147,7 +147,8 @@ class ModelFilter:
         """Create ModelFilter from file with enhanced error handling and pattern support."""
         filter_path = Path(path)
         if not filter_path.exists():
-            raise FileNotFoundError(f"Model filter file not found: {filter_path}")
+            raise FileNotFoundError(
+                f"Model filter file not found: {filter_path}")
 
         try:
             models = set()
@@ -179,7 +180,8 @@ class ModelFilter:
                 exclude_patterns=frozenset(exclude_patterns),
             )
         except Exception as e:
-            raise ValueError(f"Could not load filter file {filter_path}: {e}") from e
+            raise ValueError(
+                f"Could not load filter file {filter_path}: {e}") from e
 
     @classmethod
     def empty(cls) -> ModelFilter:
@@ -258,7 +260,8 @@ class Settings(BaseSettings):
         description="Host to bind to",
         pattern=r"^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$|^localhost$|^0\.0\.0\.0$",
     )
-    port: int = Field(default=11434, ge=1, le=65535, description="Port to listen on")
+    port: int = Field(default=11434, ge=1, le=65535,
+                      description="Port to listen on")
 
     # Environment and deployment
     environment: Environment = Field(
@@ -271,7 +274,8 @@ class Settings(BaseSettings):
     )
 
     # Logging configuration
-    log_level: LogLevel = Field(default=LogLevel.INFO, description="Logging level")
+    log_level: LogLevel = Field(
+        default=LogLevel.INFO, description="Logging level")
     log_format: str = Field(
         default="%(asctime)s %(levelname)s %(name)s %(message)s",
         description="Log format string",
@@ -334,17 +338,21 @@ class Settings(BaseSettings):
             case key if key.startswith("sk-"):
                 # OpenAI-style key format
                 if len(key) < 20:
-                    raise ValueError("OpenRouter API key appears to be too short")
+                    raise ValueError(
+                        "OpenRouter API key appears to be too short")
             case key if key.startswith("or-"):
                 # OpenRouter-specific key format
                 if len(key) < 15:
-                    raise ValueError("OpenRouter API key appears to be too short")
+                    raise ValueError(
+                        "OpenRouter API key appears to be too short")
             case key if not key.replace("-", "").replace("_", "").isalnum():
-                raise ValueError("OpenRouter API key contains invalid characters")
+                raise ValueError(
+                    "OpenRouter API key contains invalid characters")
             case _:
                 # Generic validation for other formats
                 if len(stripped) < 10:
-                    raise ValueError("OpenRouter API key appears to be too short")
+                    raise ValueError(
+                        "OpenRouter API key appears to be too short")
 
         return stripped
 
@@ -452,7 +460,8 @@ class AppState:
     openrouter_client: Any = field(default=None)
 
     # Health and monitoring
-    startup_time: float = field(default_factory=lambda: __import__("time").time())
+    startup_time: float = field(
+        default_factory=lambda: __import__("time").time())
     last_model_refresh: float = field(default=0.0)
     request_count: int = field(default=0)
     error_count: int = field(default=0)

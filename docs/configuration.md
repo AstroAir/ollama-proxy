@@ -61,12 +61,12 @@ To see all available command-line options, run:
 ollama-proxy --help
 ```
 
--   `--host`: Overrides the `HOST` environment variable.
--   `--port`: Overrides the `PORT` environment variable.
--   `--api-key`: Overrides the `OPENROUTER_API_KEY` environment variable.
--   `--models-filter`: Overrides the `MODELS_FILTER_PATH` environment variable.
--   `--log-level`: Overrides the `LOG_LEVEL` environment variable.
--   `--reload`: Overrides the `RELOAD` environment variable.
+- `--host`: Overrides the `HOST` environment variable.
+- `--port`: Overrides the `PORT` environment variable.
+- `--api-key`: Overrides the `OPENROUTER_API_KEY` environment variable.
+- `--models-filter`: Overrides the `MODELS_FILTER_PATH` environment variable.
+- `--log-level`: Overrides the `LOG_LEVEL` environment variable.
+- `--reload`: Overrides the `RELOAD` environment variable.
 
 ## Model Filtering
 
@@ -74,8 +74,8 @@ You can control which OpenRouter models are available through the proxy by creat
 
 To use model filtering:
 
-1.  Create a file (e.g., `models-filter.txt`).
-2.  Add the desired model names to the file, one per line. You should use the Ollama-compatible model name (e.g., `google/gemini-pro:latest`).
+1. Create a file (e.g., `models-filter.txt`).
+2. Add the desired model names to the file, one per line. You should use the Ollama-compatible model name (e.g., `google/gemini-pro:latest`).
 
 ### Basic Model Filtering
 
@@ -135,16 +135,19 @@ ollama-proxy --models-filter /path/to/your/custom-filter.txt
 To test your filter configuration:
 
 1. Start the proxy with your filter:
+
    ```bash
    ollama-proxy --models-filter ./your-filter.txt
    ```
 
 2. Check which models are available:
+
    ```bash
    curl http://localhost:11434/api/tags
    ```
 
 3. Or use the Ollama CLI:
+
    ```bash
    ollama list
    ```

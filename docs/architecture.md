@@ -30,6 +30,7 @@ The core of the proxy is a [FastAPI](https://fastapi.tiangolo.com/) application.
 The `create_app` function in `app.py` is a factory that initializes and configures the FastAPI application, including setting up logging, state management, and API routers.
 
 Key features of the FastAPI application:
+
 - **Lifespan Management**: Uses FastAPI's lifespan feature to initialize resources on startup and clean them up on shutdown
 - **Middleware**: Includes custom middleware for request logging and error handling
 - **Exception Handlers**: Global exception handlers for consistent error responses
@@ -40,6 +41,7 @@ Key features of the FastAPI application:
 Configuration is managed by [Pydantic's `BaseSettings`](https://docs.pydantic.dev/latest/usage/settings/). This allows for a robust and type-safe configuration system that can read settings from environment variables and `.env` files. The `get_settings` function provides a cached instance of the settings, ensuring they are loaded only once.
 
 Key features of the configuration system:
+
 - **Validation**: Strong validation of configuration values with custom validators
 - **Type Safety**: Full type hints for all configuration options
 - **Environment-based**: Support for different environments (development, staging, production)
@@ -50,13 +52,14 @@ Key features of the configuration system:
 
 All API logic is contained within `api.py`. This module defines the API routes that mimic the Ollama API. Each route handler is responsible for:
 
--   Receiving the incoming request.
--   Validating the request body using Pydantic models defined in `models.py`.
--   Calling the OpenRouter client to perform the requested action.
--   Translating the response from OpenRouter back into the Ollama format.
--   Handling any errors that may occur during the process.
+- Receiving the incoming request.
+- Validating the request body using Pydantic models defined in `models.py`.
+- Calling the OpenRouter client to perform the requested action.
+- Translating the response from OpenRouter back into the Ollama format.
+- Handling any errors that may occur during the process.
 
 Key features of the API implementation:
+
 - **Dependency Injection**: Uses FastAPI's dependency injection for clean, testable code
 - **Enhanced Error Handling**: Context managers for consistent error handling
 - **Streaming Support**: Full support for streaming responses from OpenRouter
@@ -70,6 +73,7 @@ This component is responsible for all communication with the OpenRouter API. It 
 The `OpenRouterClient` class encapsulates the logic for making requests to OpenRouter's chat, generation, and embedding endpoints.
 
 Key features of the OpenRouter client:
+
 - **Asynchronous HTTP**: Uses `httpx.AsyncClient` for high-performance async requests
 - **Connection Pooling**: Efficient connection reuse for better performance
 - **Timeout Management**: Configurable timeouts for different types of requests
@@ -81,6 +85,7 @@ Key features of the OpenRouter client:
 This file contains all the Pydantic models that define the data structures for API requests and responses. These models are used for data validation, serialization, and ensuring type safety throughout the application. They are crucial for maintaining compatibility with the Ollama API.
 
 Key features of the data models:
+
 - **Comprehensive Coverage**: Models for all supported Ollama API endpoints
 - **Validation**: Strict validation of request and response data
 - **Type Safety**: Full type hints for all model fields
@@ -92,6 +97,7 @@ Key features of the data models:
 The monitoring system provides insights into the proxy's performance and health.
 
 Key features of the monitoring system:
+
 - **Metrics Collection**: Collects key metrics like request counts, response times, and error rates
 - **Health Checks**: Comprehensive health status reporting
 - **Endpoint Statistics**: Detailed statistics for each API endpoint
@@ -105,6 +111,7 @@ Key features of the monitoring system:
 The application makes extensive use of FastAPI's dependency injection system. This promotes clean, decoupled code. For example, the `OpenRouterClient` and `AppState` are provided to the route handlers as dependencies, making the code easier to test and maintain.
 
 Benefits of dependency injection:
+
 - **Testability**: Easy to mock dependencies in unit tests
 - **Reusability**: Components can be reused in different contexts
 - **Maintainability**: Changes to dependencies don't require changes to dependent code
@@ -115,6 +122,7 @@ Benefits of dependency injection:
 The proxy uses the `structlog` library to produce structured logs in JSON format. This is invaluable for observability in a production environment, as it allows for easy parsing, searching, and filtering of logs. Contextual information, such as request IDs, is automatically added to the logs.
 
 Benefits of structured logging:
+
 - **Searchability**: Easy to search and filter logs using tools like ELK stack
 - **Analysis**: Structured data can be easily analyzed for trends and patterns
 - **Correlation**: Request IDs allow correlating log entries across different components
@@ -125,6 +133,7 @@ Benefits of structured logging:
 A custom exception hierarchy is defined in `exceptions.py`. This allows for a clear and consistent way of handling errors. A custom middleware catches these exceptions and converts them into the appropriate HTTP responses, ensuring that the client always receives a meaningful error message.
 
 Error handling features:
+
 - **Hierarchical Exceptions**: Clear exception hierarchy for different error types
 - **Context Preservation**: Error context is preserved for better debugging
 - **Consistent Responses**: All errors result in consistent JSON responses
@@ -135,6 +144,7 @@ Error handling features:
 To handle a high number of concurrent requests efficiently, the entire request-response cycle is asynchronous. The use of `async/await` with `httpx` and FastAPI ensures that the server is non-blocking and can handle I/O-bound operations (like making requests to OpenRouter) without getting blocked.
 
 Benefits of asynchronous operations:
+
 - **High Concurrency**: Can handle many concurrent requests with minimal resources
 - **Better Resource Utilization**: More efficient use of CPU and memory
 - **Scalability**: Scales better under high load
@@ -145,6 +155,7 @@ Benefits of asynchronous operations:
 The application uses FastAPI's state management to store shared resources like the OpenRouter client and model mappings. This ensures that resources are properly initialized and shared across requests.
 
 State management features:
+
 - **Application Lifecycle**: Proper initialization and cleanup of resources
 - **Thread Safety**: Safe access to shared resources in concurrent environments
 - **Resource Sharing**: Efficient sharing of expensive resources across requests
@@ -153,9 +164,9 @@ State management features:
 
 The application is designed with monitoring in mind:
 
--   **Structured Logs**: As mentioned, logs are in JSON format for easy analysis.
--   **Health Check**: The `/health` endpoint provides a simple way to check the status of the proxy.
--   **Metrics**: The `/metrics` endpoint exposes key metrics, such as request counts, error rates, and response times. This can be integrated with monitoring tools like Prometheus to provide a real-time view of the application's performance.
+- **Structured Logs**: As mentioned, logs are in JSON format for easy analysis.
+- **Health Check**: The `/health` endpoint provides a simple way to check the status of the proxy.
+- **Metrics**: The `/metrics` endpoint exposes key metrics, such as request counts, error rates, and response times. This can be integrated with monitoring tools like Prometheus to provide a real-time view of the application's performance.
 
 ### Metrics Collection
 

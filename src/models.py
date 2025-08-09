@@ -137,7 +137,8 @@ class RequestMetadata:
     request_id: RequestID = field(
         default_factory=lambda: f"req_{uuid.uuid4().hex[:12]}"
     )
-    timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    timestamp: datetime = field(
+        default_factory=lambda: datetime.now(timezone.utc))
     user_agent: str | None = None
     client_ip: str | None = None
     correlation_id: str | None = None
@@ -326,7 +327,8 @@ class OllamaGenerateRequest(BaseModel):
     stream: bool | None = True
     raw: bool | None = False
     keep_alive: str | None = None
-    context: list[int] | None = None  # Deprecated, but included for compatibility
+    # Deprecated, but included for compatibility
+    context: list[int] | None = None
 
 
 class OllamaGenerateStreamResponse(BaseModel):
@@ -393,7 +395,8 @@ class OllamaShowRequest(BaseModel):
             case None:
                 raise ValueError("Request body cannot be empty.")
             case _:
-                raise ValueError(f"Invalid request data type: {type(data).__name__}")
+                raise ValueError(
+                    f"Invalid request data type: {type(data).__name__}")
         return data
 
 
@@ -479,4 +482,5 @@ class OllamaEmbeddingsRequest(BaseModel):
 
 
 class OllamaEmbeddingsResponse(BaseModel):
-    embedding: list[float]  # Corresponds to the first embedding in /api/embed response
+    # Corresponds to the first embedding in /api/embed response
+    embedding: list[float]

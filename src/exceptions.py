@@ -137,7 +137,8 @@ class ModelForbiddenError(ModelError):
 class ErrorContext:
     """Enhanced error context with metadata."""
 
-    timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    timestamp: datetime = field(
+        default_factory=lambda: datetime.now(timezone.utc))
     request_id: str | None = None
     user_id: str | None = None
     correlation_id: str | None = None
@@ -332,7 +333,8 @@ def handle_pydantic_validation_error(exc: Exception) -> ValidationError:
             errors = exc.errors()
             if errors:
                 first_error = errors[0]
-                field = ".".join(str(loc) for loc in first_error.get("loc", []))
+                field = ".".join(str(loc)
+                                 for loc in first_error.get("loc", []))
                 message = first_error.get("msg", str(exc))
                 return ValidationError(
                     message=f"Validation error in field '{field}': {message}",

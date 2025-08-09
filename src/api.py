@@ -61,7 +61,8 @@ async def error_context(request_id: str | None = None):
         raise
     except Exception as e:
         # Convert unexpected errors to proxy errors
-        logger.error("Unexpected error", error=str(e), error_type=type(e).__name__)
+        logger.error("Unexpected error", error=str(e),
+                     error_type=type(e).__name__)
         raise ProxyError(
             message=f"Internal server error: {str(e)}",
             error_type=ErrorType.INTERNAL_ERROR,
@@ -146,7 +147,8 @@ def _create_ollama_model_details(model: dict[str, Any]) -> models.OllamaTagModel
         name=ollama_name,
         modified_at=now,
         size=_extract_model_size(model),
-        digest=f"sha256:{hash(model.get('id', ''))}"[:16],  # Generate consistent digest
+        digest=f"sha256:{hash(model.get('id', ''))}"[
+            :16],  # Generate consistent digest
         details=details,
     )
 
@@ -169,7 +171,8 @@ def _extract_model_family(model: dict[str, Any]) -> str:
 def _extract_parameter_size(model: dict[str, Any]) -> str:
     """Extract parameter size from model information."""
     # Try to extract from model name or description
-    model_str = f"{model.get('name', '')} {model.get('description', '')}".lower()
+    model_str = f"{model.get('name', '')} {model.get('description', '')}".lower(
+    )
 
     match model_str:
         case s if "7b" in s:
@@ -313,7 +316,8 @@ async def _handle_streaming_chat(
 
             # Type guard to ensure we have an AsyncIterator (not OpenRouterResponse)
             if not hasattr(stream_result, '__aiter__'):
-                raise OpenRouterError("Expected streaming response but got non-streaming response")
+                raise OpenRouterError(
+                    "Expected streaming response but got non-streaming response")
 
             stream_iterator = stream_result  # type: ignore[assignment]
             async for raw_chunk in stream_iterator:
@@ -328,10 +332,10 @@ async def _handle_streaming_chat(
                         line_end = buffer.find("\n")
                         raw_line = buffer[:line_end]
                         decoded_line = raw_line.strip()
-                        buffer = buffer[line_end + 1 :]
+                        buffer = buffer[line_end + 1:]
 
                         if decoded_line.startswith("data:"):
-                            data_content = decoded_line[len("data:") :].strip()
+                            data_content = decoded_line[len("data:"):].strip()
                             if data_content == "[DONE]":
                                 continue
 
@@ -395,7 +399,8 @@ async def _handle_streaming_chat(
                                 continue
 
         except Exception as e:
-            logger.error("Streaming error", error=str(e), request_id=request_id)
+            logger.error("Streaming error", error=str(e),
+                         request_id=request_id)
             yield json.dumps({"error": f"Streaming Error: {str(e)}"}) + "\n"
 
     return StreamingResponse(streamer(), media_type="application/x-ndjson")
@@ -413,7 +418,8 @@ async def _handle_non_streaming_chat(
 
     # Type guard to ensure we have an OpenRouterResponse (not AsyncIterator)
     if hasattr(response_result, "__aiter__"):
-        raise OpenRouterError("Unexpected streaming response for non-streaming request")
+        raise OpenRouterError(
+            "Unexpected streaming response for non-streaming request")
 
     # Now we know it's OpenRouterResponse
     from .openrouter import OpenRouterResponse
@@ -453,12 +459,14 @@ async def health_check():
 
     # Record health check metric
     record_metric(
-        "health_check_total", 1, {"status": health_status["status"]}, MetricType.COUNTER
+        "health_check_total", 1, {
+            "status": health_status["status"]}, MetricType.COUNTER
     )
 
     return JSONResponse(
         content=health_status,
-        status_code=200 if health_status["status"] in ["healthy", "degraded"] else 503,
+        status_code=200 if health_status["status"] in [
+            "healthy", "degraded"] else 503,
     )
 
 
@@ -549,19 +557,21 @@ async def api_generate(request: Request):
                                     line_end = buffer.find("\n")
                                     raw_line = buffer[:line_end]
                                     decoded_line = raw_line.strip()
-                                    buffer = buffer[line_end + 1 :]
+                                    buffer = buffer[line_end + 1:]
 
                                     if decoded_line.startswith("data:"):
                                         data_content = decoded_line[
-                                            len("data:") :
+                                            len("data:"):
                                         ].strip()
                                         if data_content == "[DONE]":
                                             continue
                                         try:
                                             chunk = json.loads(data_content)
-                                            choice = chunk.get("choices", [{}])[0]
+                                            choice = chunk.get(
+                                                "choices", [{}])[0]
                                             delta = choice.get("delta", {})
-                                            finish_reason = choice.get("finish_reason")
+                                            finish_reason = choice.get(
+                                                "finish_reason")
 
                                             if (
                                                 delta
@@ -635,7 +645,8 @@ async def api_generate(request: Request):
                         error_details = exc.response.text
                         error_message = error_details
                     yield (
-                        json.dumps({"error": error_message, "status_code": status_code})
+                        json.dumps({"error": error_message,
+                                   "status_code": status_code})
                         + "\n"
                     )
                 except Exception as e:
@@ -663,7 +674,8 @@ async def api_show(request: Request):
         name_to_resolve = req.name if req.name is not None else req.model
 
         # Use the resolve function which now handles None input
-        resolved_ollama_name, _ = utils.resolve_model_name(name_to_resolve, ollama_map)
+        resolved_ollama_name, _ = utils.resolve_model_name(
+            name_to_resolve, ollama_map)
 
         if not resolved_ollama_name:
             # Provide a clearer error message indicating which name was attempted
@@ -725,7 +737,8 @@ async def api_show(request: Request):
                 status_code=404,
                 detail=f"Model '{req.name}' not found upstream at OpenRouter.",
             )
-        raise HTTPException(status_code=exc.response.status_code, detail=str(exc))
+        raise HTTPException(
+            status_code=exc.response.status_code, detail=str(exc))
     except HTTPException as http_exc:  # Re-raise existing HTTPExceptions
         logging.getLogger("ollama-proxy").error(
             "[ERROR] /api/show HTTPException: %s\n%s",
@@ -735,7 +748,8 @@ async def api_show(request: Request):
         raise http_exc
     except Exception as exc:
         logging.getLogger("ollama-proxy").error(
-            "[ERROR] /api/show Exception: %s\n%s", str(exc), traceback.format_exc()
+            "[ERROR] /api/show Exception: %s\n%s", str(
+                exc), traceback.format_exc()
         )
         raise HTTPException(status_code=500, detail=str(exc))
 
@@ -790,7 +804,8 @@ async def _handle_embeddings(
         embedding_response = await openrouter.fetch_embeddings(api_key, payload)
         # Transform OpenRouter response to Ollama format
         # Assuming OpenRouter returns a list of embedding objects with an 'embedding' field
-        embeddings = [item["embedding"] for item in embedding_response.get("data", [])]
+        embeddings = [item["embedding"]
+                      for item in embedding_response.get("data", [])]
         # Ollama expects a single list for single input, list of lists for multiple
         if isinstance(input_data, str):
             return {"embedding": embeddings[0] if embeddings else []}
@@ -798,7 +813,8 @@ async def _handle_embeddings(
             return {"embeddings": embeddings}
 
     except httpx.HTTPStatusError as exc:
-        raise HTTPException(status_code=exc.response.status_code, detail=str(exc))
+        raise HTTPException(
+            status_code=exc.response.status_code, detail=str(exc))
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc))
 
@@ -812,7 +828,8 @@ async def api_embed(request: Request):
         result = await _handle_embeddings(request, req.model, req.input)
         return result
     except httpx.HTTPStatusError as exc:
-        raise HTTPException(status_code=exc.response.status_code, detail=str(exc))
+        raise HTTPException(
+            status_code=exc.response.status_code, detail=str(exc))
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc))
 
@@ -827,7 +844,8 @@ async def api_embeddings(request: Request):
         result = await _handle_embeddings(request, req.model, req.prompt)
         return result
     except httpx.HTTPStatusError as exc:
-        raise HTTPException(status_code=exc.response.status_code, detail=str(exc))
+        raise HTTPException(
+            status_code=exc.response.status_code, detail=str(exc))
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc))
 

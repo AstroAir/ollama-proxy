@@ -19,11 +19,13 @@ def parse_args() -> argparse.Namespace:
     # Server options
     parser.add_argument("--host", type=str, help="Host to bind to")
     parser.add_argument("--port", type=int, help="Port to listen on")
-    parser.add_argument("--reload", action="store_true", help="Enable auto-reload")
+    parser.add_argument("--reload", action="store_true",
+                        help="Enable auto-reload")
 
     # Configuration options
     parser.add_argument("--api-key", type=str, help="OpenRouter API key")
-    parser.add_argument("--models-filter", type=str, help="Model filter file path")
+    parser.add_argument("--models-filter", type=str,
+                        help="Model filter file path")
     parser.add_argument("--log-level", type=str, help="Logging level")
 
     return parser.parse_args()

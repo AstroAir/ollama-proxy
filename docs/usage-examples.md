@@ -289,6 +289,7 @@ services:
 If you can't connect to the proxy:
 
 1. Check if the proxy is running:
+
    ```bash
    # Check if the port is listening
    netstat -tlnp | grep :11434
@@ -298,6 +299,7 @@ If you can't connect to the proxy:
    ```
 
 2. Verify the proxy logs:
+
    ```bash
    # If running with Docker
    docker logs ollama-proxy-container
@@ -311,17 +313,20 @@ If you can't connect to the proxy:
 If you get "model not found" errors:
 
 1. List available models to see what's actually available:
+
    ```bash
    curl http://localhost:11434/api/tags
    ```
 
 2. Check your model filter configuration:
+
    ```bash
    # View your filter file
    cat models-filter.txt
    ```
 
 3. Try without filtering to see all models:
+
    ```bash
    ollama-proxy --models-filter ""
    ```
@@ -331,11 +336,13 @@ If you get "model not found" errors:
 If you get authentication errors:
 
 1. Verify your API key:
+
    ```bash
    echo $OPENROUTER_API_KEY
    ```
 
 2. Test the key directly with OpenRouter:
+
    ```bash
    curl https://openrouter.ai/api/v1/models \
      -H "Authorization: Bearer $OPENROUTER_API_KEY"
@@ -348,11 +355,13 @@ If responses are slow:
 1. Check the proxy logs for any errors or warnings.
 
 2. Monitor the proxy's health endpoint:
+
    ```bash
    curl http://localhost:11434/health
    ```
 
 3. Check the metrics endpoint for performance data:
+
    ```bash
    curl http://localhost:11434/metrics
    ```
