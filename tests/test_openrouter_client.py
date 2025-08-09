@@ -492,17 +492,26 @@ class TestOpenRouterClientRequests:
 
         mock_response = AsyncMock()
         mock_response.status_code = 200
-        mock_response.aiter_bytes.return_value = async_iter_chunks()
+        mock_response.aiter_bytes = async_iter_chunks
 
-        with patch(
-            "httpx.AsyncClient.post", new_callable=AsyncMock, return_value=mock_response
-        ) as mock_post:
+        # Create an async context manager mock
+        mock_stream_context = AsyncMock()
+        mock_stream_context.__aenter__.return_value = mock_response
+        mock_stream_context.__aexit__.return_value = None
+
+        # Create a mock client that returns our mock context manager
+        mock_client = AsyncMock()
+        mock_client.stream = Mock(return_value=mock_stream_context)
+        mock_client.__aenter__.return_value = mock_client
+        mock_client.__aexit__.return_value = None
+
+        with patch.object(client, '_get_client', return_value=mock_client):
             payload = {"model": "gpt-4", "messages": [{"role": "user", "content": "Hi"}]}
-            stream_iterator = await client.chat_completion(payload, stream=True)
+            stream_iterator = client.chat_completion_stream(payload)
 
-            mock_post.assert_called_once()
             results = [chunk async for chunk in stream_iterator]
             assert len(results) == 3
+            mock_client.stream.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_chat_completion_api_error(self, client):

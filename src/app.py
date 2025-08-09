@@ -13,7 +13,7 @@ from fastapi.responses import JSONResponse
 
 from .api import router
 from .config import AppState, Settings, get_settings
-from .exceptions import NetworkError, OpenRouterError
+from .exceptions import NetworkError, OpenRouterError, ProxyError
 from .openrouter import OpenRouterClient, OpenRouterResponse
 from .utils import build_ollama_to_openrouter_map, build_openrouter_to_ollama_map
 
@@ -214,6 +214,25 @@ def create_app() -> FastAPI:
             raise
 
     # Add global exception handlers
+    @app.exception_handler(ProxyError)
+    async def proxy_error_handler(request: Request, exc: ProxyError):
+        logger = structlog.get_logger(__name__)
+        logger.error(
+            "Proxy error",
+            path=request.url.path,
+            status_code=exc.status_code,
+            error_type=exc.error_type.value if exc.error_type else None,
+            message=str(exc),
+        )
+
+        return JSONResponse(
+            status_code=exc.status_code,
+            content={
+                "error": exc.message,
+                "type": exc.error_type.value if exc.error_type else "proxy_error",
+            },
+        )
+
     @app.exception_handler(OpenRouterError)
     async def openrouter_error_handler(request: Request, exc: OpenRouterError):
         logger = structlog.get_logger(__name__)

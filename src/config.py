@@ -419,6 +419,11 @@ class Settings(BaseSettings):
             case _:
                 raise ValueError(f"Invalid port number: {v}")
 
+    @property
+    def is_model_filtering_enabled(self) -> bool:
+        """Check if model filtering is enabled."""
+        return bool(self.models_filter_path and Path(self.models_filter_path).exists())
+
 
 @lru_cache()
 def get_settings() -> Settings:

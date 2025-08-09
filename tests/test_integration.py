@@ -93,7 +93,7 @@ class TestEndToEndWorkflows:
     def test_complete_chat_workflow_streaming(self, client):
         """Test complete chat workflow with streaming."""
         # Mock the OpenRouter streaming chat completion
-        with patch("src.openrouter.OpenRouterClient.chat_completion") as mock_chat:
+        with patch("src.openrouter.OpenRouterClient.chat_completion_stream") as mock_chat:
             async def mock_stream():
                 yield b'data: {"id": "chatcmpl-123", "choices": [{"delta": {"content": "Hello"}}]}\n\n'
                 yield b'data: {"id": "chatcmpl-123", "choices": [{"delta": {"content": " there!"}}]}\n\n'
@@ -123,7 +123,6 @@ class TestEndToEndWorkflows:
             mock_chat.assert_called_once()
             call_args = mock_chat.call_args
             assert call_args[0][0]["model"] == "anthropic/claude-3-sonnet"  # Resolved model name
-            assert call_args[1]["stream"] is True
 
     def test_model_resolution_workflow(self, client):
         """Test model name resolution workflow."""
@@ -155,11 +154,13 @@ class TestEndToEndWorkflows:
                 "messages": [{"role": "user", "content": "Hello"}],
                 "stream": False
             }
-            
-            response = client.post("/api/chat", json=payload)
-            assert response.status_code == 404
-            data = response.json()
-            assert "not found" in data["error"].lower()
+
+            # Use TestClient that doesn't raise server exceptions
+            with TestClient(client.app, raise_server_exceptions=False) as error_client:
+                response = error_client.post("/api/chat", json=payload)
+                assert response.status_code == 404
+                data = response.json()
+                assert "not found" in data["error"].lower()
 
     def test_health_and_monitoring_workflow(self, client):
         """Test health check and monitoring endpoints."""
@@ -177,13 +178,15 @@ class TestEndToEndWorkflows:
 
     def test_request_validation_workflow(self, client):
         """Test request validation and error responses."""
-        # Test invalid JSON
-        response = client.post("/api/chat", data="invalid json")
-        assert response.status_code == 422
-        
-        # Test missing required fields
-        response = client.post("/api/chat", json={})
-        assert response.status_code == 422
+        # Use TestClient that doesn't raise server exceptions
+        with TestClient(client.app, raise_server_exceptions=False) as error_client:
+            # Test invalid JSON
+            response = error_client.post("/api/chat", content="invalid json", headers={"content-type": "application/json"})
+            assert response.status_code == 422  # JSON decode error becomes validation error
+
+            # Test missing required fields
+            response = error_client.post("/api/chat", json={})
+            assert response.status_code == 422
         
         # Test invalid model format
         response = client.post("/api/chat", json={
@@ -247,17 +250,16 @@ class TestConcurrentRequests:
         import threading
         
         with patch("src.openrouter.OpenRouterClient.chat_completion") as mock_chat:
-            # Use a thread-safe counter to track calls
-            call_count = threading.local()
-            call_count.value = 0
-            
+            # Use a simple counter - the mock will track call count automatically
+            call_counter = [0]  # Use list for mutable reference
+
             def mock_chat_response(*args, **kwargs):
-                call_count.value += 1
+                call_counter[0] += 1
                 return OpenRouterResponse(
-                    data={"choices": [{"message": {"content": f"Response {call_count.value}"}}]},
+                    data={"choices": [{"message": {"content": f"Response {call_counter[0]}"}}]},
                     status_code=200, headers={}, metrics=AsyncMock()
                 )
-            
+
             mock_chat.side_effect = mock_chat_response
             
             def make_request(i):

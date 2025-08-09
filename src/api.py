@@ -12,6 +12,7 @@ from typing import TYPE_CHECKING, Annotated, Any
 import httpx
 import structlog
 from fastapi import APIRouter, Depends, HTTPException, Request, status
+from pydantic import ValidationError as PydanticValidationError
 from fastapi.responses import (
     JSONResponse,
     PlainTextResponse,
@@ -111,6 +112,9 @@ async def error_context(request_id: str | None = None):
         yield context
     except ProxyError:
         # Re-raise proxy errors as-is to maintain error hierarchy
+        raise
+    except (HTTPException, PydanticValidationError):
+        # Re-raise FastAPI and Pydantic exceptions to let FastAPI handle them
         raise
     except Exception as e:
         # Convert unexpected errors to proxy errors with proper logging
@@ -305,15 +309,13 @@ def _resolve_and_validate_model(
 
 @router.post("/api/chat")
 async def api_chat(
+    req: models.OllamaChatRequest,
     request: Request,
     app_state: AppState = Depends(get_app_state),
     openrouter_client: OpenRouterClient = Depends(get_openrouter_client),
 ):
     """Handle chat completion requests with enhanced error handling and modern patterns."""
     async with error_context() as ctx:
-        # Parse and validate request
-        body = await request.json()
-        req = models.OllamaChatRequest(**body)
 
         # Add request metadata
         req.metadata = models.RequestMetadata(
@@ -393,15 +395,7 @@ async def _handle_streaming_chat(
         try:
             # Buffer for accumulating partial chunks that may be split across network packets
             buffer = ""
-            stream_result = await client.chat_completion(payload, stream=True)
-
-            # Type guard to ensure we have an AsyncIterator (not OpenRouterResponse)
-            # This is necessary because the return type is a union
-            if not hasattr(stream_result, '__aiter__'):
-                raise OpenRouterError(
-                    "Expected streaming response but got non-streaming response")
-
-            stream_iterator = stream_result  # type: ignore[assignment]
+            stream_iterator = client.chat_completion_stream(payload)
 
             # Process each chunk from the OpenRouter streaming response
             async for raw_chunk in stream_iterator:
@@ -426,6 +420,7 @@ async def _handle_streaming_chat(
                         if decoded_line.startswith("data:"):
                             data_content = decoded_line[len("data:"):].strip()
                             if data_content == "[DONE]":
+                                yield "[DONE]\n"
                                 continue
 
                             try:
@@ -653,6 +648,7 @@ async def api_generate(request: Request):
                                             len("data:"):
                                         ].strip()
                                         if data_content == "[DONE]":
+                                            yield "[DONE]\n"
                                             continue
                                         try:
                                             chunk = json.loads(data_content)

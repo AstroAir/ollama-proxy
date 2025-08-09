@@ -322,7 +322,7 @@ class TestSettings:
 
         monkeypatch.setenv("ENVIRONMENT", "development")
         dev_settings = Settings(OPENROUTER_API_KEY="valid-test-key-12345")
-        self.assertFalse(settings.is_model_filtering_enabled)
+        assert not dev_settings.is_model_filtering_enabled
         assert dev_settings.environment.is_development
         assert not dev_settings.environment.is_production
 

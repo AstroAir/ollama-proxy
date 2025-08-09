@@ -55,7 +55,7 @@ class TestCreateApp:
         with patch("src.app.lifespan"):
             app = create_app()
             # Check that routes are registered
-            route_paths = [route.path for route in app.routes]
+            route_paths = [getattr(route, 'path', None) for route in app.routes if hasattr(route, 'path')]
             assert "/" in route_paths
 
     def test_create_app_has_cors_middleware(self):
@@ -63,7 +63,7 @@ class TestCreateApp:
         with patch("src.app.lifespan"):
             app = create_app()
             # Check that CORS middleware is in the middleware stack
-            middleware_types = [type(middleware.cls).__name__ for middleware in app.user_middleware]
+            middleware_types = [getattr(middleware.cls, '__name__', None) for middleware in app.user_middleware if hasattr(middleware, 'cls')]
             assert "CORSMiddleware" in middleware_types
 
     def test_create_app_has_exception_handlers(self):
@@ -128,15 +128,16 @@ class TestAppMiddleware:
         with patch("src.app.structlog.get_logger") as mock_get_logger:
             mock_logger = Mock()
             mock_get_logger.return_value = mock_logger
-            
-            client = TestClient(app)
+
+            # Configure TestClient to not raise exceptions
+            client = TestClient(app, raise_server_exceptions=False)
             response = client.get("/test-generic-error")
-            
+
             assert response.status_code == 500
             data = response.json()
             assert data["error"] == "Internal server error"
             assert data["type"] == "internal_error"
-            
+
             # Verify error was logged
             mock_logger.error.assert_called()
 
@@ -153,6 +154,7 @@ class TestLifespan:
         # Setup mocks
         mock_settings = Mock(spec=Settings)
         mock_settings.models_filter = None
+        mock_settings.models_filter_path = None
         mock_get_settings.return_value = mock_settings
 
         mock_client_instance = AsyncMock()

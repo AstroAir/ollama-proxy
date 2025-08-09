@@ -88,20 +88,26 @@ class TestOpenRouterClientRequests:
 
 """,
         ]
-        mock_stream = AsyncMock()
-        mock_stream.__aiter__.return_value = stream_chunks
-        mock_response = httpx.Response(200)
-        # Use setattr to mock the method instead of direct assignment
-        setattr(mock_response, 'aiter_bytes', AsyncMock(return_value=stream_chunks))
+        # Create a mock response that supports async context manager protocol
+        async def mock_aiter_bytes():
+            for chunk in stream_chunks:
+                yield chunk
+
+        mock_response = AsyncMock()
+        mock_response.status_code = 200
+        mock_response.aiter_bytes = mock_aiter_bytes
+        mock_response.__aenter__ = AsyncMock(return_value=mock_response)
+        mock_response.__aexit__ = AsyncMock(return_value=None)
 
         with patch(
-            "httpx.AsyncClient.stream", new_callable=AsyncMock, return_value=mock_response
+            "httpx.AsyncClient.stream", return_value=mock_response
         ) as mock_stream_method:
             payload = {"model": "gpt-4", "messages": [{"role": "user", "content": "Hi"}]}
-            stream_iterator = await client.chat_completion(payload, stream=True)
+            stream_iterator = client.chat_completion_stream(payload)
+
+            results = [chunk async for chunk in stream_iterator]
 
             mock_stream_method.assert_called_once()
-            results = [chunk async for chunk in stream_iterator]
             assert len(results) == 3
 
     @pytest.mark.asyncio

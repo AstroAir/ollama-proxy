@@ -10,7 +10,7 @@ import uuid
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
 from enum import StrEnum
-from typing import Any, AsyncIterator, Self, TypeAlias
+from typing import Any, AsyncIterator, Awaitable, Literal, Self, TypeAlias, overload
 
 import httpx
 import structlog
@@ -231,6 +231,7 @@ class OpenRouterClient:
         self.base_url = settings.openrouter_base_url.rstrip("/")
         self.timeout = settings.openrouter_timeout
         self._client: httpx.AsyncClient | None = None
+        self._lock = asyncio.Lock()
         self._request_count = 0
         self._error_count = 0
 
@@ -254,44 +255,30 @@ class OpenRouterClient:
     @asynccontextmanager
     async def _get_client(self) -> AsyncIterator[httpx.AsyncClient]:
         """Get or create HTTP client with enhanced configuration and monitoring."""
-        if self._client is None:
-            # Enhanced client configuration for better performance and reliability
-            self._client = httpx.AsyncClient(
-                timeout=httpx.Timeout(
-                    connect=10.0,  # Connection timeout
-                    read=self.timeout,  # Read timeout
-                    write=30.0,  # Write timeout
-                    pool=5.0,  # Pool timeout
-                ),
-                limits=httpx.Limits(
-                    max_connections=self.settings.max_concurrent_requests,
-                    max_keepalive_connections=min(
-                        20, self.settings.max_concurrent_requests // 5
+        async with self._lock:
+            if self._client is None or self._client.is_closed:
+                # Enhanced client configuration for better performance and reliability
+                self._client = httpx.AsyncClient(
+                    timeout=httpx.Timeout(
+                        connect=10.0,  # Connection timeout
+                        read=self.timeout,  # Read timeout
+                        write=30.0,  # Write timeout
+                        pool=5.0,  # Pool timeout
                     ),
-                    keepalive_expiry=30.0,
-                ),
-                # Enhanced retry configuration
-                transport=httpx.AsyncHTTPTransport(retries=3, verify=True),
-                # Follow redirects with limit
-                follow_redirects=True,
-                max_redirects=3,
-            )
-
-        try:
-            yield self._client
-        except Exception as e:
-            # Enhanced error handling with logging
-            logger.error(
-                "HTTP client error",
-                error=str(e),
-                error_type=type(e).__name__,
-                request_count=self._request_count,
-            )
-            # Close client on error to ensure clean state
-            if self._client:
-                await self._client.aclose()
-                self._client = None
-            raise
+                    limits=httpx.Limits(
+                        max_connections=self.settings.max_concurrent_requests,
+                        max_keepalive_connections=min(
+                            20, self.settings.max_concurrent_requests // 5
+                        ),
+                        keepalive_expiry=30.0,
+                    ),
+                    # Enhanced retry configuration
+                    transport=httpx.AsyncHTTPTransport(retries=3, verify=True),
+                    # Follow redirects with limit
+                    follow_redirects=True,
+                    max_redirects=3,
+                )
+        yield self._client
 
     async def close(self) -> None:
         """Close the HTTP client."""
@@ -456,12 +443,30 @@ class OpenRouterClient:
 
     async def chat_completion(
         self, payload: RequestPayload, stream: bool = False, **kwargs: Any
-    ) -> OpenRouterResponse | AsyncIterator[bytes]:
-        """Create a chat completion request with enhanced monitoring and latest API features."""
+    ) -> OpenRouterResponse:
+        """Create a chat completion request with enhanced monitoring and latest API features.
+
+        Note: This method only handles non-streaming requests. For streaming requests,
+        use chat_completion_stream() method directly.
+        """
+        if stream:
+            raise ValueError("Use chat_completion_stream() for streaming requests")
+        return await self._chat_completion_non_stream(payload, **kwargs)
+
+    def chat_completion_stream(
+        self, payload: RequestPayload, **kwargs: Any
+    ) -> AsyncIterator[bytes]:
+        """Create a streaming chat completion request."""
+        return self._chat_completion_stream(payload, **kwargs)
+
+    async def _chat_completion_stream(
+        self, payload: RequestPayload, **kwargs: Any
+    ) -> AsyncIterator[bytes]:
+        """Handle streaming chat completion."""
         metrics = RequestMetrics(
             endpoint=OpenRouterEndpoint.CHAT_COMPLETIONS,
             model=payload.get("model"),
-            stream=stream,
+            stream=True,
         )
         self._request_count += 1
 
@@ -471,10 +476,52 @@ class OpenRouterClient:
         endpoint = f"{self.base_url}{OpenRouterEndpoint.CHAT_COMPLETIONS}"
         headers = self._get_headers(request_id=metrics.request_id)
 
-        # Add streaming header if needed
-        if stream:
-            headers["Accept"] = "text/event-stream"
-            enhanced_payload["stream"] = True
+        # Add streaming header
+        headers["Accept"] = "text/event-stream"
+        enhanced_payload["stream"] = True
+
+        # Set request size for metrics
+        metrics.request_size = len(json.dumps(
+            enhanced_payload).encode("utf-8"))
+
+        async with self._get_client() as client:
+            try:
+                async with client.stream("POST", endpoint, headers=headers, json=enhanced_payload) as response:
+                    if response.status_code != 200:
+                        await response.aread()
+                        await self._handle_response_error(response, metrics)
+
+                    async for chunk in response.aiter_bytes():
+                        yield chunk
+
+            except httpx.RequestError as e:
+                self._error_count += 1
+                metrics.mark_complete(error=str(e))
+                logger.error(
+                    "Network error in chat completion",
+                    error=str(e),
+                    **metrics.to_dict(),
+                )
+                raise NetworkError(
+                    f"Network error in chat completion: {e}", original_error=e
+                )
+
+    async def _chat_completion_non_stream(
+        self, payload: RequestPayload, **kwargs: Any
+    ) -> OpenRouterResponse:
+        """Handle non-streaming chat completion."""
+        metrics = RequestMetrics(
+            endpoint=OpenRouterEndpoint.CHAT_COMPLETIONS,
+            model=payload.get("model"),
+            stream=False,
+        )
+        self._request_count += 1
+
+        # Enhanced payload processing with latest OpenRouter features
+        enhanced_payload = self._enhance_chat_payload(payload, **kwargs)
+
+        endpoint = f"{self.base_url}{OpenRouterEndpoint.CHAT_COMPLETIONS}"
+        headers = self._get_headers(request_id=metrics.request_id)
 
         # Set request size for metrics
         metrics.request_size = len(json.dumps(
@@ -489,25 +536,22 @@ class OpenRouterClient:
                 if response.status_code != 200:
                     await self._handle_response_error(response, metrics)
 
-                if stream:
-                    return self._stream_response(response, metrics)
-                else:
-                    data = response.json()
-                    metrics.response_size = len(
-                        json.dumps(data).encode("utf-8"))
-                    metrics.mark_complete(status_code=response.status_code)
+                data = response.json()
+                metrics.response_size = len(
+                    json.dumps(data).encode("utf-8"))
+                metrics.mark_complete(status_code=response.status_code)
 
-                    logger.debug(
-                        "Chat completion successful",
-                        model=payload.get("model"),
-                        **metrics.to_dict(),
-                    )
-                    return OpenRouterResponse(
-                        data=data,
-                        status_code=response.status_code,
-                        headers=dict(response.headers),
-                        metrics=metrics,
-                    )
+                logger.debug(
+                    "Chat completion successful",
+                    model=payload.get("model"),
+                    **metrics.to_dict(),
+                )
+                return OpenRouterResponse(
+                    data=data,
+                    status_code=response.status_code,
+                    headers=dict(response.headers),
+                    metrics=metrics,
+                )
 
             except httpx.RequestError as e:
                 self._error_count += 1
@@ -562,32 +606,7 @@ class OpenRouterClient:
 
         return enhanced
 
-    async def _stream_response(
-        self, response: httpx.Response, metrics: RequestMetrics
-    ) -> AsyncIterator[bytes]:
-        """Handle streaming response from OpenRouter with enhanced monitoring."""
-        try:
-            chunk_count = 0
-            # Stream response chunks as they arrive from OpenRouter
-            # This maintains low latency by forwarding data immediately
-            async for chunk in response.aiter_bytes():
-                if chunk:
-                    chunk_count += 1
-                    yield chunk  # Forward chunk immediately to client
-
-            # Log completion metrics for monitoring and debugging
-            logger.debug(
-                "Streaming response completed",
-                chunk_count=chunk_count,
-                **metrics.to_dict(),
-            )
-        except Exception as e:
-            # Track errors for monitoring and convert to our error type
-            self._error_count += 1
-            logger.error(
-                "Error in streaming response", error=str(e), **metrics.to_dict()
-            )
-            raise OpenRouterError(f"Streaming error: {e}")
+    
 
     async def fetch_embeddings(self, payload: dict[str, Any]) -> OpenRouterResponse:
         """Fetch embeddings from OpenRouter with enhanced monitoring."""
@@ -680,10 +699,12 @@ async def chat_completion(
             os.environ.pop("OPENROUTER_API_KEY", None)
     client = OpenRouterClient(settings)
     try:
-        result = await client.chat_completion(payload, stream)
         if stream:
-            return result  # AsyncIterator[bytes]
+            # For streaming, return the AsyncIterator directly
+            return client.chat_completion_stream(payload)  # AsyncIterator[bytes]
         else:
+            # For non-streaming, await the result
+            result = await client.chat_completion(payload, False)
             # Type guard to ensure we have OpenRouterResponse
             if isinstance(result, OpenRouterResponse):
                 return result.data

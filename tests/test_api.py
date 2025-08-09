@@ -75,8 +75,8 @@ def test_api_chat_non_streaming(mock_chat_completion, client):
     assert data["done"] is True
 
 
-@patch("src.openrouter.OpenRouterClient.chat_completion")
-def test_api_chat_streaming(mock_chat_completion, client):
+@patch("src.openrouter.OpenRouterClient.chat_completion_stream")
+def test_api_chat_streaming(mock_chat_completion_stream, client):
     async def mock_stream():
         yield b"""data: {"id": "1", "choices": [{"delta": {"content": "Hel"}}]}
 
@@ -88,7 +88,7 @@ def test_api_chat_streaming(mock_chat_completion, client):
 
 """
 
-    mock_chat_completion.return_value = mock_stream()
+    mock_chat_completion_stream.return_value = mock_stream()
 
     payload = {
         "model": "gemini-pro:latest",  # Use the model name that exists in our mock data
