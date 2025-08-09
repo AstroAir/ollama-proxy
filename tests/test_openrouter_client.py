@@ -24,14 +24,14 @@ class TestOpenRouterEndpoint:
 
     def test_endpoint_values(self):
         """Test endpoint string values."""
-        assert OpenRouterEndpoint.MODELS == "/models"
-        assert OpenRouterEndpoint.CHAT_COMPLETIONS == "/chat/completions"
-        assert OpenRouterEndpoint.COMPLETIONS == "/completions"
-        assert OpenRouterEndpoint.EMBEDDINGS == "/embeddings"
-        assert OpenRouterEndpoint.GENERATION == "/generation"
-        assert OpenRouterEndpoint.PROVIDERS == "/providers"
-        assert OpenRouterEndpoint.LIMITS == "/auth/key"
-        assert OpenRouterEndpoint.COSTS == "/generation/{id}/cost"
+        assert OpenRouterEndpoint.MODELS.value == "/models"
+        assert OpenRouterEndpoint.CHAT_COMPLETIONS.value == "/chat/completions"
+        assert OpenRouterEndpoint.COMPLETIONS.value == "/completions"
+        assert OpenRouterEndpoint.EMBEDDINGS.value == "/embeddings"
+        assert OpenRouterEndpoint.GENERATION.value == "/generation"
+        assert OpenRouterEndpoint.PROVIDERS.value == "/providers"
+        assert OpenRouterEndpoint.LIMITS.value == "/auth/key"
+        assert OpenRouterEndpoint.COSTS.value == "/generation/{id}/cost"
 
 
 class TestRequestMetrics:
@@ -199,6 +199,7 @@ class TestOpenRouterResponse:
             metrics=metrics,
         )
         usage = response_with_usage.usage
+        assert usage is not None
         assert usage["prompt_tokens"] == 10
         assert usage["completion_tokens"] == 20
 
@@ -280,6 +281,7 @@ class TestOpenRouterResponse:
             metrics=metrics,
         )
         error_info = response_dict_error.get_error_info()
+        assert error_info is not None
         assert error_info["message"] == "API error"
         assert error_info["code"] == "invalid_request"
 
@@ -291,6 +293,7 @@ class TestOpenRouterResponse:
             metrics=metrics,
         )
         error_info = response_string_error.get_error_info()
+        assert error_info is not None
         assert error_info["message"] == "Simple error message"
 
     def test_to_dict(self):
@@ -484,7 +487,8 @@ class TestOpenRouterClientRequests:
         mock_stream = AsyncMock()
         mock_stream.__aiter__.return_value = stream_chunks
         mock_response = httpx.Response(200, content=mock_stream)
-        mock_response.aiter_bytes = AsyncMock(return_value=stream_chunks)
+        # Use setattr to mock the method instead of direct assignment
+        setattr(mock_response, 'aiter_bytes', AsyncMock(return_value=stream_chunks))
 
         with patch(
             "httpx.AsyncClient.stream", new_callable=AsyncMock, return_value=mock_response

@@ -91,7 +91,8 @@ class TestOpenRouterClientRequests:
         mock_stream = AsyncMock()
         mock_stream.__aiter__.return_value = stream_chunks
         mock_response = httpx.Response(200)
-        mock_response.aiter_bytes = AsyncMock(return_value=stream_chunks)
+        # Use setattr to mock the method instead of direct assignment
+        setattr(mock_response, 'aiter_bytes', AsyncMock(return_value=stream_chunks))
 
         with patch(
             "httpx.AsyncClient.stream", new_callable=AsyncMock, return_value=mock_response

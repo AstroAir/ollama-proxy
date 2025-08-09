@@ -215,26 +215,26 @@ class TestSettings:
     def test_api_key_validation_basic(self, monkeypatch):
         """Test basic API key validation."""
         monkeypatch.setenv("OPENROUTER_API_KEY", "valid-api-key-12345")
-        settings = Settings()
+        settings = Settings(OPENROUTER_API_KEY="valid-api-key-12345")
         assert settings.openrouter_api_key == "valid-api-key-12345"
 
     def test_api_key_validation_openai_style(self, monkeypatch):
         """Test OpenAI-style API key validation."""
         monkeypatch.setenv("OPENROUTER_API_KEY", "sk-1234567890abcdef1234567890abcdef")
-        settings = Settings()
+        settings = Settings(OPENROUTER_API_KEY="sk-1234567890abcdef1234567890abcdef")
         assert settings.openrouter_api_key.startswith("sk-")
 
     def test_api_key_validation_openrouter_style(self, monkeypatch):
         """Test OpenRouter-style API key validation."""
         monkeypatch.setenv("OPENROUTER_API_KEY", "or-1234567890abcdef")
-        settings = Settings()
+        settings = Settings(OPENROUTER_API_KEY="or-1234567890abcdef")
         assert settings.openrouter_api_key.startswith("or-")
 
     def test_api_key_validation_too_short(self, monkeypatch):
         """Test API key too short validation."""
         monkeypatch.setenv("OPENROUTER_API_KEY", "short")
         with pytest.raises(ValidationError, match="too short"):
-            Settings()
+            Settings(OPENROUTER_API_KEY="short")
 
     def test_api_key_validation_empty(self, monkeypatch):
         """Test empty API key validation."""
@@ -242,28 +242,28 @@ class TestSettings:
         with pytest.raises(
             ValidationError, match="String should have at least 1 character"
         ):
-            Settings()
+            Settings(OPENROUTER_API_KEY="")
 
     def test_api_key_validation_invalid_characters(self, monkeypatch):
         """Test API key with invalid characters."""
         monkeypatch.setenv("OPENROUTER_API_KEY", "invalid@key#with$special%chars")
         with pytest.raises(ValidationError, match="invalid characters"):
-            Settings()
+            Settings(OPENROUTER_API_KEY="invalid@key#with$special%chars")
 
     def test_host_validation_valid(self, monkeypatch):
         """Test valid host validation."""
         monkeypatch.setenv("OPENROUTER_API_KEY", "valid-test-key-12345")
 
         monkeypatch.setenv("HOST", "localhost")
-        settings1 = Settings()
+        settings1 = Settings(OPENROUTER_API_KEY="valid-test-key-12345")
         assert settings1.host == "localhost"
 
         monkeypatch.setenv("HOST", "0.0.0.0")
-        settings2 = Settings()
+        settings2 = Settings(OPENROUTER_API_KEY="valid-test-key-12345")
         assert settings2.host == "0.0.0.0"
 
         monkeypatch.setenv("HOST", "192.168.1.1")
-        settings3 = Settings()
+        settings3 = Settings(OPENROUTER_API_KEY="valid-test-key-12345")
         assert settings3.host == "192.168.1.1"
 
     def test_host_validation_invalid_ipv4(self, monkeypatch):
@@ -271,13 +271,13 @@ class TestSettings:
         monkeypatch.setenv("OPENROUTER_API_KEY", "valid-test-key-12345")
         monkeypatch.setenv("HOST", "999.999.999.999")
         with pytest.raises(ValidationError, match="Invalid IPv4 address"):
-            Settings()
+            Settings(OPENROUTER_API_KEY="valid-test-key-12345")
 
     def test_port_validation_valid(self, monkeypatch):
         """Test valid port validation."""
         monkeypatch.setenv("OPENROUTER_API_KEY", "valid-test-key-12345")
         monkeypatch.setenv("PORT", "8080")
-        settings = Settings()
+        settings = Settings(OPENROUTER_API_KEY="valid-test-key-12345")
         assert settings.port == 8080
 
     def test_port_validation_invalid_range(self, monkeypatch):
@@ -286,22 +286,22 @@ class TestSettings:
 
         monkeypatch.setenv("PORT", "0")
         with pytest.raises(ValidationError, match="greater than or equal to 1"):
-            Settings()
+            Settings(OPENROUTER_API_KEY="valid-test-key-12345")
 
         monkeypatch.setenv("PORT", "70000")
         with pytest.raises(ValidationError, match="less than or equal to 65535"):
-            Settings()
+            Settings(OPENROUTER_API_KEY="valid-test-key-12345")
 
     def test_log_level_validation(self, monkeypatch):
         """Test log level validation."""
         monkeypatch.setenv("OPENROUTER_API_KEY", "valid-test-key-12345")
 
         monkeypatch.setenv("LOG_LEVEL", "DEBUG")
-        settings = Settings()
+        settings = Settings(OPENROUTER_API_KEY="valid-test-key-12345")
         assert settings.log_level == LogLevel.DEBUG
 
         monkeypatch.setenv("LOG_LEVEL", "INFO")
-        settings2 = Settings()
+        settings2 = Settings(OPENROUTER_API_KEY="valid-test-key-12345")
         assert settings2.log_level == LogLevel.INFO
 
     def test_environment_validation(self, monkeypatch):
@@ -309,11 +309,11 @@ class TestSettings:
         monkeypatch.setenv("OPENROUTER_API_KEY", "valid-test-key-12345")
 
         monkeypatch.setenv("ENVIRONMENT", "production")
-        settings = Settings()
+        settings = Settings(OPENROUTER_API_KEY="valid-test-key-12345")
         assert settings.environment == Environment.PRODUCTION
 
         monkeypatch.setenv("ENVIRONMENT", "development")
-        settings2 = Settings()
+        settings2 = Settings(OPENROUTER_API_KEY="valid-test-key-12345")
         assert settings2.environment == Environment.DEVELOPMENT
 
     def test_computed_fields(self, monkeypatch):
@@ -321,14 +321,14 @@ class TestSettings:
         monkeypatch.setenv("OPENROUTER_API_KEY", "valid-test-key-12345")
 
         monkeypatch.setenv("ENVIRONMENT", "development")
-        dev_settings = Settings()
-        assert dev_settings.is_development
-        assert not dev_settings.is_production
+        dev_settings = Settings(OPENROUTER_API_KEY="valid-test-key-12345")
+        assert dev_settings.is_development() == True
+        assert dev_settings.is_production() == False
 
         monkeypatch.setenv("ENVIRONMENT", "production")
-        prod_settings = Settings()
-        assert not prod_settings.is_development
-        assert prod_settings.is_production
+        prod_settings = Settings(OPENROUTER_API_KEY="valid-test-key-12345")
+        assert prod_settings.is_development() == False
+        assert prod_settings.is_production() == True
 
 
 if __name__ == "__main__":
