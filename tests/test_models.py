@@ -122,21 +122,26 @@ class TestOllamaChatMessage:
 
     def test_basic_creation(self):
         """Test basic message creation."""
-        msg = OllamaChatMessage(role=MessageRole.USER, content="Hello", images=None)
+        msg = OllamaChatMessage(role=MessageRole.USER,
+                                content="Hello", images=None)
         assert msg.role == MessageRole.USER
         assert msg.content == "Hello"
         assert msg.images is None
 
     def test_content_length(self):
         """Test content length property."""
-        msg = OllamaChatMessage(role=MessageRole.USER, content="Hello world", images=None)
+        msg = OllamaChatMessage(role=MessageRole.USER,
+                                content="Hello world", images=None)
         assert msg.content_length == 11
 
     def test_is_empty(self):
         """Test empty message detection."""
-        empty_msg = OllamaChatMessage(role=MessageRole.USER, content="", images=None)
-        whitespace_msg = OllamaChatMessage(role=MessageRole.USER, content="   ", images=None)
-        normal_msg = OllamaChatMessage(role=MessageRole.USER, content="Hello", images=None)
+        empty_msg = OllamaChatMessage(
+            role=MessageRole.USER, content="", images=None)
+        whitespace_msg = OllamaChatMessage(
+            role=MessageRole.USER, content="   ", images=None)
+        normal_msg = OllamaChatMessage(
+            role=MessageRole.USER, content="Hello", images=None)
 
         assert empty_msg.is_empty()
         assert whitespace_msg.is_empty()
@@ -144,7 +149,8 @@ class TestOllamaChatMessage:
 
     def test_string_representation(self):
         """Test string representation."""
-        msg = OllamaChatMessage(role=MessageRole.USER, content="Hello world", images=None)
+        msg = OllamaChatMessage(role=MessageRole.USER,
+                                content="Hello world", images=None)
         str_repr = str(msg)
         assert "user:" in str_repr.lower()
         assert "Hello world" in str_repr
@@ -152,7 +158,8 @@ class TestOllamaChatMessage:
     def test_long_content_truncation(self):
         """Test long content truncation in string representation."""
         long_content = "x" * 150
-        msg = OllamaChatMessage(role=MessageRole.USER, content=long_content, images=None)
+        msg = OllamaChatMessage(role=MessageRole.USER,
+                                content=long_content, images=None)
         str_repr = str(msg)
         assert "..." in str_repr
         assert len(str_repr) < len(long_content) + 20  # Should be truncated
@@ -163,8 +170,10 @@ class TestOllamaChatRequest:
 
     def test_basic_creation(self):
         """Test basic request creation."""
-        messages = [OllamaChatMessage(role=MessageRole.USER, content="Hello", images=None)]
-        req = OllamaChatRequest(model="test-model", messages=messages, format=None, options=None, template=None, stream=False, keep_alive=None, metadata=None)
+        messages = [OllamaChatMessage(
+            role=MessageRole.USER, content="Hello", images=None)]
+        req = OllamaChatRequest(model="test-model", messages=messages, format=None,
+                                options=None, template=None, stream=False, keep_alive=None, metadata=None)
         assert req.model == "test-model"
         assert len(req.messages) == 1
         assert req.stream is False
@@ -172,30 +181,41 @@ class TestOllamaChatRequest:
     def test_message_count(self):
         """Test message count property."""
         messages = [
-            OllamaChatMessage(role=MessageRole.USER, content="Hello", images=None),
-            OllamaChatMessage(role=MessageRole.ASSISTANT, content="Hi there", images=None),
+            OllamaChatMessage(role=MessageRole.USER,
+                              content="Hello", images=None),
+            OllamaChatMessage(role=MessageRole.ASSISTANT,
+                              content="Hi there", images=None),
         ]
-        req = OllamaChatRequest(model="test", messages=messages, format=None, options=None, template=None, stream=False, keep_alive=None, metadata=None)
+        req = OllamaChatRequest(model="test", messages=messages, format=None,
+                                options=None, template=None, stream=False, keep_alive=None, metadata=None)
         assert req.message_count == 2
 
     def test_total_content_length(self):
         """Test total content length calculation."""
         messages = [
-            OllamaChatMessage(role=MessageRole.USER, content="Hello", images=None),  # 5 chars
-            OllamaChatMessage(role=MessageRole.ASSISTANT, content="Hi", images=None),  # 2 chars
+            OllamaChatMessage(role=MessageRole.USER,
+                              content="Hello", images=None),  # 5 chars
+            OllamaChatMessage(role=MessageRole.ASSISTANT,
+                              content="Hi", images=None),  # 2 chars
         ]
-        req = OllamaChatRequest(model="test", messages=messages, format=None, options=None, template=None, stream=False, keep_alive=None, metadata=None)
+        req = OllamaChatRequest(model="test", messages=messages, format=None,
+                                options=None, template=None, stream=False, keep_alive=None, metadata=None)
         assert req.total_content_length == 7
 
     def test_get_messages_by_role(self):
         """Test filtering messages by role."""
         messages = [
-            OllamaChatMessage(role=MessageRole.SYSTEM, content="System", images=None),
-            OllamaChatMessage(role=MessageRole.USER, content="User1", images=None),
-            OllamaChatMessage(role=MessageRole.ASSISTANT, content="Assistant", images=None),
-            OllamaChatMessage(role=MessageRole.USER, content="User2", images=None),
+            OllamaChatMessage(role=MessageRole.SYSTEM,
+                              content="System", images=None),
+            OllamaChatMessage(role=MessageRole.USER,
+                              content="User1", images=None),
+            OllamaChatMessage(role=MessageRole.ASSISTANT,
+                              content="Assistant", images=None),
+            OllamaChatMessage(role=MessageRole.USER,
+                              content="User2", images=None),
         ]
-        req = OllamaChatRequest(model="test", messages=messages, format=None, options=None, template=None, stream=False, keep_alive=None, metadata=None)
+        req = OllamaChatRequest(model="test", messages=messages, format=None,
+                                options=None, template=None, stream=False, keep_alive=None, metadata=None)
 
         user_messages = req.get_messages_by_role(MessageRole.USER)
         assert len(user_messages) == 2
@@ -210,7 +230,8 @@ class TestOllamaChatRequest:
         # Valid: single system message
         req1 = OllamaChatRequest(
             model="test",
-            messages=[OllamaChatMessage(role=MessageRole.SYSTEM, content="System", images=None)],
+            messages=[OllamaChatMessage(
+                role=MessageRole.SYSTEM, content="System", images=None)],
             format=None, options=None, template=None, stream=False, keep_alive=None, metadata=None
         )
         assert req1.validate_conversation_flow()
@@ -219,8 +240,10 @@ class TestOllamaChatRequest:
         req2 = OllamaChatRequest(
             model="test",
             messages=[
-                OllamaChatMessage(role=MessageRole.SYSTEM, content="System", images=None),
-                OllamaChatMessage(role=MessageRole.USER, content="User", images=None),
+                OllamaChatMessage(role=MessageRole.SYSTEM,
+                                  content="System", images=None),
+                OllamaChatMessage(role=MessageRole.USER,
+                                  content="User", images=None),
             ],
             format=None, options=None, template=None, stream=False, keep_alive=None, metadata=None
         )
@@ -229,7 +252,8 @@ class TestOllamaChatRequest:
         # Valid: starting with user
         req3 = OllamaChatRequest(
             model="test",
-            messages=[OllamaChatMessage(role=MessageRole.USER, content="User", images=None)],
+            messages=[OllamaChatMessage(
+                role=MessageRole.USER, content="User", images=None)],
             format=None, options=None, template=None, stream=False, keep_alive=None, metadata=None
         )
         assert req3.validate_conversation_flow()
@@ -238,7 +262,8 @@ class TestOllamaChatRequest:
         req4 = OllamaChatRequest(
             model="test",
             messages=[
-                OllamaChatMessage(role=MessageRole.ASSISTANT, content="Assistant", images=None)
+                OllamaChatMessage(role=MessageRole.ASSISTANT,
+                                  content="Assistant", images=None)
             ],
             format=None, options=None, template=None, stream=False, keep_alive=None, metadata=None
         )
@@ -247,12 +272,17 @@ class TestOllamaChatRequest:
     def test_get_conversation_summary(self):
         """Test conversation summary generation."""
         messages = [
-            OllamaChatMessage(role=MessageRole.SYSTEM, content="System", images=None),
-            OllamaChatMessage(role=MessageRole.USER, content="User1", images=None),
-            OllamaChatMessage(role=MessageRole.ASSISTANT, content="Assistant", images=None),
-            OllamaChatMessage(role=MessageRole.USER, content="User2", images=None),
+            OllamaChatMessage(role=MessageRole.SYSTEM,
+                              content="System", images=None),
+            OllamaChatMessage(role=MessageRole.USER,
+                              content="User1", images=None),
+            OllamaChatMessage(role=MessageRole.ASSISTANT,
+                              content="Assistant", images=None),
+            OllamaChatMessage(role=MessageRole.USER,
+                              content="User2", images=None),
         ]
-        req = OllamaChatRequest(model="test", messages=messages, format=None, options=None, template=None, stream=False, keep_alive=None, metadata=None)
+        req = OllamaChatRequest(model="test", messages=messages, format=None,
+                                options=None, template=None, stream=False, keep_alive=None, metadata=None)
         summary = req.get_conversation_summary()
 
         assert summary["total_messages"] == 4

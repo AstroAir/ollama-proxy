@@ -30,7 +30,7 @@ class TestPerformanceMetrics:
                     data=mock_response_data, status_code=200, headers={}, metrics=AsyncMock()
                 )
                 mock_fetch.return_value = mock_response
-                
+
                 app = create_app()
                 with TestClient(app) as c:
                     yield c
@@ -40,35 +40,35 @@ class TestPerformanceMetrics:
         # Reset metrics collector
         collector = get_metrics_collector()
         collector.reset_stats()
-        
+
         with patch("src.openrouter.OpenRouterClient.chat_completion") as mock_chat:
             mock_response = OpenRouterResponse(
                 data={"choices": [{"message": {"content": "Hello"}}]},
                 status_code=200, headers={}, metrics=AsyncMock()
             )
             mock_chat.return_value = mock_response
-            
+
             payload = {
                 "model": "gpt-4:latest",
                 "messages": [{"role": "user", "content": "Hello"}],
                 "stream": False
             }
-            
+
             # Measure time for multiple requests
             start_time = time.time()
             num_requests = 10
-            
+
             for _ in range(num_requests):
                 response = client.post("/api/chat", json=payload)
                 assert response.status_code == 200
-            
+
             end_time = time.time()
             total_time = end_time - start_time
             avg_time_per_request = total_time / num_requests
-            
+
             # Verify performance is reasonable (should be very fast with mocks)
             assert avg_time_per_request < 0.1  # Less than 100ms per request
-            
+
             # Verify metrics were collected (if metrics collection is enabled)
             all_stats = collector.get_endpoint_stats()
             if all_stats:  # Only check if metrics collection is working
@@ -82,36 +82,36 @@ class TestPerformanceMetrics:
         """Test memory usage doesn't grow excessively with many requests."""
         import psutil
         import gc
-        
+
         # Get initial memory usage
         process = psutil.Process()
         initial_memory = process.memory_info().rss
-        
+
         with patch("src.openrouter.OpenRouterClient.chat_completion") as mock_chat:
             mock_response = OpenRouterResponse(
                 data={"choices": [{"message": {"content": "Hello"}}]},
                 status_code=200, headers={}, metrics=AsyncMock()
             )
             mock_chat.return_value = mock_response
-            
+
             payload = {
                 "model": "gpt-4:latest",
                 "messages": [{"role": "user", "content": "Hello"}],
                 "stream": False
             }
-            
+
             # Make many requests
             for _ in range(100):
                 response = client.post("/api/chat", json=payload)
                 assert response.status_code == 200
-            
+
             # Force garbage collection
             gc.collect()
-            
+
             # Check memory usage
             final_memory = process.memory_info().rss
             memory_increase = final_memory - initial_memory
-            
+
             # Memory increase should be reasonable (less than 50MB)
             assert memory_increase < 50 * 1024 * 1024
 
@@ -119,7 +119,7 @@ class TestPerformanceMetrics:
         """Test performance under concurrent load."""
         import concurrent.futures
         import threading
-        
+
         with patch("src.openrouter.OpenRouterClient.chat_completion") as mock_chat:
             # Simple counter using list for mutable reference
             response_counter = [0]
@@ -129,12 +129,13 @@ class TestPerformanceMetrics:
                 # Simulate some processing time
                 time.sleep(0.01)
                 return OpenRouterResponse(
-                    data={"choices": [{"message": {"content": f"Response {response_counter[0]}"}}]},
+                    data={"choices": [
+                        {"message": {"content": f"Response {response_counter[0]}"}}]},
                     status_code=200, headers={}, metrics=AsyncMock()
                 )
 
             mock_chat.side_effect = mock_response
-            
+
             def make_request():
                 payload = {
                     "model": "gpt-4:latest",
@@ -145,25 +146,27 @@ class TestPerformanceMetrics:
                 response = client.post("/api/chat", json=payload)
                 end = time.time()
                 return response.status_code, end - start
-            
+
             # Test with different concurrency levels
             concurrency_levels = [1, 5, 10]
-            
+
             for concurrency in concurrency_levels:
                 start_time = time.time()
-                
+
                 with concurrent.futures.ThreadPoolExecutor(max_workers=concurrency) as executor:
-                    futures = [executor.submit(make_request) for _ in range(concurrency)]
-                    results = [future.result() for future in concurrent.futures.as_completed(futures)]
-                
+                    futures = [executor.submit(make_request)
+                               for _ in range(concurrency)]
+                    results = [future.result()
+                               for future in concurrent.futures.as_completed(futures)]
+
                 end_time = time.time()
                 total_time = end_time - start_time
-                
+
                 # All requests should succeed
                 for status_code, request_time in results:
                     assert status_code == 200
                     assert request_time < 1.0  # Each request should complete in under 1 second
-                
+
                 # Total time should be reasonable
                 assert total_time < 2.0  # All requests should complete in under 2 seconds
 
@@ -176,25 +179,25 @@ class TestPerformanceMetrics:
                     yield f'data: {{"id": "chunk-{i}", "choices": [{{"delta": {{"content": "chunk {i} "}}}}]}}\n\n'.encode()
                     await asyncio.sleep(0.001)  # Small delay between chunks
                 yield b'data: [DONE]\n\n'
-            
+
             mock_chat.return_value = mock_stream()
-            
+
             payload = {
                 "model": "gpt-4:latest",
                 "messages": [{"role": "user", "content": "Stream test"}],
                 "stream": True
             }
-            
+
             start_time = time.time()
             response = client.post("/api/chat", json=payload)
             end_time = time.time()
-            
+
             assert response.status_code == 200
-            
+
             # Streaming should start quickly
             response_time = end_time - start_time
             assert response_time < 0.5  # Should start streaming in under 500ms
-            
+
             # Verify streaming content
             content = response.text
             assert "chunk 0" in content
@@ -205,32 +208,34 @@ class TestPerformanceMetrics:
         """Test performance of metrics aggregation operations."""
         collector = get_metrics_collector()
         collector.reset_stats()
-        
+
         # Add many metrics
         start_time = time.time()
-        
+
         for i in range(1000):
-            collector.record_metric(f"test_metric_{i % 10}", float(i), {"endpoint": f"/test/{i % 5}"})
-        
+            collector.record_metric(f"test_metric_{i % 10}", float(i), {
+                                    "endpoint": f"/test/{i % 5}"})
+
         metrics_time = time.time() - start_time
-        
+
         # Recording metrics should be fast
         assert metrics_time < 1.0  # Should complete in under 1 second
-        
+
         # Test aggregation performance
         start_time = time.time()
-        
+
         all_metrics = collector.get_metrics()
         endpoint_stats = collector.get_endpoint_stats()
         health_status = collector.get_health_status()
-        
+
         aggregation_time = time.time() - start_time
-        
+
         # Aggregation should be fast
         assert aggregation_time < 0.1  # Should complete in under 100ms
-        
+
         # Verify results
-        assert len(all_metrics) <= collector.max_metrics  # Should respect limits
+        # Should respect limits
+        assert len(all_metrics) <= collector.max_metrics
         assert len(endpoint_stats) > 0
         assert "status" in health_status
 
@@ -278,20 +283,20 @@ class TestPerformanceMetrics:
             {"model": "", "expected_status": 422},
             # Invalid JSON is handled by FastAPI before reaching our code
         ]
-        
+
         for scenario in error_scenarios:
             payload = {
                 "model": scenario["model"],
                 "messages": [{"role": "user", "content": "Hello"}],
                 "stream": False
             }
-            
+
             start_time = time.time()
             response = client.post("/api/chat", json=payload)
             end_time = time.time()
-            
+
             assert response.status_code == scenario["expected_status"]
-            
+
             # Error handling should be fast
             error_time = end_time - start_time
             assert error_time < 0.1  # Should complete in under 100ms
@@ -312,7 +317,7 @@ class TestLoadTesting:
                     data=mock_response_data, status_code=200, headers={}, metrics=AsyncMock()
                 )
                 mock_fetch.return_value = mock_response
-                
+
                 app = create_app()
                 with TestClient(app) as c:
                     yield c
@@ -322,22 +327,23 @@ class TestLoadTesting:
         """Test sustained load over time."""
         with patch("src.openrouter.OpenRouterClient.chat_completion") as mock_chat:
             mock_response = OpenRouterResponse(
-                data={"choices": [{"message": {"content": "Load test response"}}]},
+                data={"choices": [
+                    {"message": {"content": "Load test response"}}]},
                 status_code=200, headers={}, metrics=AsyncMock()
             )
             mock_chat.return_value = mock_response
-            
+
             payload = {
                 "model": "gpt-4:latest",
                 "messages": [{"role": "user", "content": "Load test"}],
                 "stream": False
             }
-            
+
             # Run sustained load for 10 seconds
             start_time = time.time()
             request_count = 0
             errors = 0
-            
+
             while time.time() - start_time < 10:
                 try:
                     response = client.post("/api/chat", json=payload)
@@ -347,14 +353,14 @@ class TestLoadTesting:
                         errors += 1
                 except Exception:
                     errors += 1
-                
+
                 # Small delay to prevent overwhelming
                 time.sleep(0.01)
-            
+
             # Verify performance
             total_time = time.time() - start_time
             requests_per_second = request_count / total_time
-            
+
             assert request_count > 0
             assert errors == 0  # No errors should occur
             assert requests_per_second > 10  # Should handle at least 10 RPS

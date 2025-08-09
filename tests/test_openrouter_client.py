@@ -417,6 +417,7 @@ class TestOpenRouterClient:
 if __name__ == "__main__":
     pytest.main([__file__])
 
+
 class TestOpenRouterClientRequests:
     """Test OpenRouterClient request methods with mocking."""
 
@@ -465,7 +466,8 @@ class TestOpenRouterClientRequests:
         with patch(
             "httpx.AsyncClient.post", new_callable=AsyncMock, return_value=mock_response
         ) as mock_post:
-            payload = {"model": "gpt-4", "messages": [{"role": "user", "content": "Hi"}]}
+            payload = {"model": "gpt-4",
+                       "messages": [{"role": "user", "content": "Hi"}]}
             response = await client.chat_completion(payload, stream=False)
 
             mock_post.assert_called_once()
@@ -506,7 +508,8 @@ class TestOpenRouterClientRequests:
         mock_client.__aexit__.return_value = None
 
         with patch.object(client, '_get_client', return_value=mock_client):
-            payload = {"model": "gpt-4", "messages": [{"role": "user", "content": "Hi"}]}
+            payload = {"model": "gpt-4",
+                       "messages": [{"role": "user", "content": "Hi"}]}
             stream_iterator = client.chat_completion_stream(payload)
 
             results = [chunk async for chunk in stream_iterator]
@@ -520,7 +523,8 @@ class TestOpenRouterClientRequests:
             400, json={"error": {"message": "Invalid request"}}
         )
         # Set a mock request to avoid the RuntimeError
-        mock_request = httpx.Request("POST", "https://openrouter.ai/api/v1/chat/completions")
+        mock_request = httpx.Request(
+            "POST", "https://openrouter.ai/api/v1/chat/completions")
         mock_response._request = mock_request
 
         with patch(
@@ -590,14 +594,17 @@ class TestOpenRouterClientRequests:
     @pytest.mark.asyncio
     async def test_chat_completion_500_error(self, client):
         """Test chat completion with 500 API error."""
-        mock_response = httpx.Response(500, json={"error": {"message": "Internal Server Error"}})
+        mock_response = httpx.Response(
+            500, json={"error": {"message": "Internal Server Error"}})
         # Set a mock request to avoid the RuntimeError
-        mock_request = httpx.Request("POST", "https://openrouter.ai/api/v1/chat/completions")
+        mock_request = httpx.Request(
+            "POST", "https://openrouter.ai/api/v1/chat/completions")
         mock_response._request = mock_request
 
         with patch(
             "httpx.AsyncClient.post", new_callable=AsyncMock, return_value=mock_response
         ):
             with pytest.raises(OpenRouterError, match="Server error \\(500\\): Internal Server Error"):
-                payload = {"model": "gpt-4", "messages": [{"role": "user", "content": "Hi"}]}
+                payload = {"model": "gpt-4",
+                           "messages": [{"role": "user", "content": "Hi"}]}
                 await client.chat_completion(payload, stream=False)

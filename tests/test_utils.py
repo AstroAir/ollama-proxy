@@ -43,7 +43,8 @@ class TestModelMapping:
 
     def test_from_openrouter_model(self):
         """Test creating ModelMapping from OpenRouter model data."""
-        model_data = {"id": "openai/gpt-4", "name": "GPT-4", "context_length": 8192}
+        model_data = {"id": "openai/gpt-4",
+                      "name": "GPT-4", "context_length": 8192}
 
         mapping = ModelMapping.from_openrouter_model(model_data)
         assert mapping.ollama_name == "gpt-4:latest"
@@ -133,13 +134,15 @@ class TestResolveModelName:
 
     def test_resolve_exact_match(self, sample_mapping):
         """Test resolving exact model name match."""
-        ollama_name, openrouter_id = resolve_model_name("gpt-4:latest", sample_mapping)
+        ollama_name, openrouter_id = resolve_model_name(
+            "gpt-4:latest", sample_mapping)
         assert ollama_name == "gpt-4:latest"
         assert openrouter_id == "openai/gpt-4"
 
     def test_resolve_prefix_match(self, sample_mapping):
         """Test resolving model name by prefix."""
-        ollama_name, openrouter_id = resolve_model_name("gpt-4", sample_mapping)
+        ollama_name, openrouter_id = resolve_model_name(
+            "gpt-4", sample_mapping)
         assert ollama_name == "gpt-4:latest"
         assert openrouter_id == "openai/gpt-4"
 
@@ -147,20 +150,23 @@ class TestResolveModelName:
         """Test resolving model name with multiple prefix matches."""
         # The function only matches exact prefixes up to the colon, so "llama-2" won't match "llama-2-7b:latest"
         # This should return None since there's no exact "llama-2:*" match
-        ollama_name, openrouter_id = resolve_model_name("llama-2", sample_mapping)
+        ollama_name, openrouter_id = resolve_model_name(
+            "llama-2", sample_mapping)
         assert ollama_name is None
         assert openrouter_id is None
 
     def test_resolve_prefix_match_exact_prefix(self, sample_mapping):
         """Test resolving model name with exact prefix match."""
         # This should work since we're looking for "llama-2-7b" and we have "llama-2-7b:latest"
-        ollama_name, openrouter_id = resolve_model_name("llama-2-7b", sample_mapping)
+        ollama_name, openrouter_id = resolve_model_name(
+            "llama-2-7b", sample_mapping)
         assert ollama_name == "llama-2-7b:latest"
         assert openrouter_id == "meta-llama/llama-2-7b"
 
     def test_resolve_no_match(self, sample_mapping):
         """Test resolving non-existent model name."""
-        ollama_name, openrouter_id = resolve_model_name("nonexistent", sample_mapping)
+        ollama_name, openrouter_id = resolve_model_name(
+            "nonexistent", sample_mapping)
         assert ollama_name is None
         assert openrouter_id is None
 
@@ -172,7 +178,8 @@ class TestResolveModelName:
 
     def test_resolve_with_version_no_match(self, sample_mapping):
         """Test resolving model name with version that doesn't match."""
-        ollama_name, openrouter_id = resolve_model_name("gpt-4:v2", sample_mapping)
+        ollama_name, openrouter_id = resolve_model_name(
+            "gpt-4:v2", sample_mapping)
         assert ollama_name is None
         assert openrouter_id is None
 

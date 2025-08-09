@@ -46,8 +46,10 @@ Examples:
     )
 
     # Server options
-    parser.add_argument("--host", type=str, help="Host to bind to (default: 0.0.0.0)")
-    parser.add_argument("--port", type=int, help="Port to listen on (default: 11434)")
+    parser.add_argument("--host", type=str,
+                        help="Host to bind to (default: 0.0.0.0)")
+    parser.add_argument("--port", type=int,
+                        help="Port to listen on (default: 11434)")
     parser.add_argument("--reload", action="store_true",
                         help="Enable auto-reload for development")
 
@@ -56,7 +58,8 @@ Examples:
     parser.add_argument("--models-filter", type=str,
                         help="Path to model filter file")
     parser.add_argument("--log-level", type=str,
-                        choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
+                        choices=["DEBUG", "INFO",
+                                 "WARNING", "ERROR", "CRITICAL"],
                         help="Logging level")
 
     return parser.parse_args()
@@ -186,22 +189,28 @@ def admin_main() -> None:
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
 
-    subparsers = parser.add_subparsers(dest="command", help="Available commands")
+    subparsers = parser.add_subparsers(
+        dest="command", help="Available commands")
 
     # Status command
     status_parser = subparsers.add_parser("status", help="Show server status")
-    status_parser.add_argument("--host", default="localhost", help="Server host")
-    status_parser.add_argument("--port", type=int, default=11434, help="Server port")
+    status_parser.add_argument(
+        "--host", default="localhost", help="Server host")
+    status_parser.add_argument(
+        "--port", type=int, default=11434, help="Server port")
 
     # Config command
     config_parser = subparsers.add_parser("config", help="Show configuration")
     config_parser.add_argument("--format", choices=["json", "yaml", "table"],
-                              default="table", help="Output format")
+                               default="table", help="Output format")
 
     # Models command
-    models_parser = subparsers.add_parser("models", help="List available models")
-    models_parser.add_argument("--host", default="localhost", help="Server host")
-    models_parser.add_argument("--port", type=int, default=11434, help="Server port")
+    models_parser = subparsers.add_parser(
+        "models", help="List available models")
+    models_parser.add_argument(
+        "--host", default="localhost", help="Server host")
+    models_parser.add_argument(
+        "--port", type=int, default=11434, help="Server port")
 
     args = parser.parse_args()
 
@@ -286,11 +295,14 @@ def _admin_models(host: str, port: int) -> None:
 
 def health_check() -> None:
     """Standalone health check entry point."""
-    parser = argparse.ArgumentParser(description="Health check for ollama-proxy")
+    parser = argparse.ArgumentParser(
+        description="Health check for ollama-proxy")
     parser.add_argument("--host", default="localhost", help="Server host")
     parser.add_argument("--port", type=int, default=11434, help="Server port")
-    parser.add_argument("--timeout", type=float, default=10.0, help="Request timeout")
-    parser.add_argument("--json", action="store_true", help="Output JSON format")
+    parser.add_argument("--timeout", type=float,
+                        default=10.0, help="Request timeout")
+    parser.add_argument("--json", action="store_true",
+                        help="Output JSON format")
 
     args = parser.parse_args()
 
@@ -325,11 +337,14 @@ def health_check() -> None:
 
 def config_main() -> None:
     """Configuration management entry point."""
-    parser = argparse.ArgumentParser(description="Configuration management for ollama-proxy")
-    parser.add_argument("--validate", action="store_true", help="Validate configuration")
-    parser.add_argument("--show", action="store_true", help="Show current configuration")
+    parser = argparse.ArgumentParser(
+        description="Configuration management for ollama-proxy")
+    parser.add_argument("--validate", action="store_true",
+                        help="Validate configuration")
+    parser.add_argument("--show", action="store_true",
+                        help="Show current configuration")
     parser.add_argument("--format", choices=["json", "yaml", "env"],
-                       default="yaml", help="Output format")
+                        default="yaml", help="Output format")
 
     args = parser.parse_args()
 
@@ -373,11 +388,14 @@ def config_main() -> None:
 
 def benchmark_main() -> None:
     """Benchmarking entry point."""
-    parser = argparse.ArgumentParser(description="Benchmark ollama-proxy performance")
+    parser = argparse.ArgumentParser(
+        description="Benchmark ollama-proxy performance")
     parser.add_argument("--host", default="localhost", help="Server host")
     parser.add_argument("--port", type=int, default=11434, help="Server port")
-    parser.add_argument("--requests", type=int, default=100, help="Number of requests")
-    parser.add_argument("--concurrency", type=int, default=10, help="Concurrent requests")
+    parser.add_argument("--requests", type=int, default=100,
+                        help="Number of requests")
+    parser.add_argument("--concurrency", type=int,
+                        default=10, help="Concurrent requests")
     parser.add_argument("--model", default="llama2", help="Model to test")
 
     args = parser.parse_args()
@@ -458,11 +476,15 @@ async def _run_benchmark(args) -> None:
 def test_main() -> None:
     """Testing entry point with various test options."""
     parser = argparse.ArgumentParser(description="Run tests for ollama-proxy")
-    parser.add_argument("--coverage", action="store_true", help="Run with coverage")
-    parser.add_argument("--verbose", "-v", action="store_true", help="Verbose output")
+    parser.add_argument("--coverage", action="store_true",
+                        help="Run with coverage")
+    parser.add_argument("--verbose", "-v",
+                        action="store_true", help="Verbose output")
     parser.add_argument("--fast", action="store_true", help="Skip slow tests")
-    parser.add_argument("--integration", action="store_true", help="Run integration tests only")
-    parser.add_argument("--unit", action="store_true", help="Run unit tests only")
+    parser.add_argument("--integration", action="store_true",
+                        help="Run integration tests only")
+    parser.add_argument("--unit", action="store_true",
+                        help="Run unit tests only")
     parser.add_argument("path", nargs="*", help="Specific test paths")
 
     args = parser.parse_args()
@@ -471,7 +493,8 @@ def test_main() -> None:
     cmd = ["uv", "run", "pytest"]
 
     if args.coverage:
-        cmd.extend(["--cov=src", "--cov-report=html", "--cov-report=term-missing"])
+        cmd.extend(["--cov=src", "--cov-report=html",
+                   "--cov-report=term-missing"])
 
     if args.verbose:
         cmd.append("-v")
@@ -498,9 +521,12 @@ def test_main() -> None:
 
 def lint_main() -> None:
     """Linting entry point."""
-    parser = argparse.ArgumentParser(description="Run linting for ollama-proxy")
-    parser.add_argument("--fix", action="store_true", help="Auto-fix issues where possible")
-    parser.add_argument("--check-only", action="store_true", help="Check only, don't fix")
+    parser = argparse.ArgumentParser(
+        description="Run linting for ollama-proxy")
+    parser.add_argument("--fix", action="store_true",
+                        help="Auto-fix issues where possible")
+    parser.add_argument("--check-only", action="store_true",
+                        help="Check only, don't fix")
 
     args = parser.parse_args()
 
@@ -549,9 +575,12 @@ def lint_main() -> None:
 
 def format_main() -> None:
     """Code formatting entry point."""
-    parser = argparse.ArgumentParser(description="Format code for ollama-proxy")
-    parser.add_argument("--check", action="store_true", help="Check formatting only")
-    parser.add_argument("path", nargs="*", default=["src", "tests"], help="Paths to format")
+    parser = argparse.ArgumentParser(
+        description="Format code for ollama-proxy")
+    parser.add_argument("--check", action="store_true",
+                        help="Check formatting only")
+    parser.add_argument("path", nargs="*",
+                        default=["src", "tests"], help="Paths to format")
 
     args = parser.parse_args()
 
@@ -614,18 +643,24 @@ Examples:
         """
     )
 
-    subparsers = parser.add_subparsers(dest="subcommand", help="Available subcommands")
+    subparsers = parser.add_subparsers(
+        dest="subcommand", help="Available subcommands")
 
     # Server subcommand (default behavior)
-    server_parser = subparsers.add_parser("server", help="Start the proxy server")
+    server_parser = subparsers.add_parser(
+        "server", help="Start the proxy server")
     server_parser.add_argument("--host", type=str, help="Host to bind to")
     server_parser.add_argument("--port", type=int, help="Port to listen on")
-    server_parser.add_argument("--api-key", type=str, help="OpenRouter API key")
-    server_parser.add_argument("--models-filter", type=str, help="Path to model filter file")
+    server_parser.add_argument(
+        "--api-key", type=str, help="OpenRouter API key")
+    server_parser.add_argument(
+        "--models-filter", type=str, help="Path to model filter file")
     server_parser.add_argument("--log-level", type=str,
-                              choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
-                              help="Logging level")
-    server_parser.add_argument("--reload", action="store_true", help="Enable auto-reload")
+                               choices=["DEBUG", "INFO",
+                                        "WARNING", "ERROR", "CRITICAL"],
+                               help="Logging level")
+    server_parser.add_argument(
+        "--reload", action="store_true", help="Enable auto-reload")
 
     # Dev subcommand
     dev_parser = subparsers.add_parser("dev", help="Start in development mode")
@@ -634,67 +669,100 @@ Examples:
     dev_parser.add_argument("--api-key", type=str, help="OpenRouter API key")
 
     # Daemon subcommand
-    daemon_parser = subparsers.add_parser("daemon", help="Start in daemon mode")
+    daemon_parser = subparsers.add_parser(
+        "daemon", help="Start in daemon mode")
     daemon_parser.add_argument("--host", type=str, help="Host to bind to")
     daemon_parser.add_argument("--port", type=int, help="Port to listen on")
-    daemon_parser.add_argument("--api-key", type=str, help="OpenRouter API key")
+    daemon_parser.add_argument(
+        "--api-key", type=str, help="OpenRouter API key")
 
     # Admin subcommand
-    admin_parser = subparsers.add_parser("admin", help="Administrative interface")
-    admin_subparsers = admin_parser.add_subparsers(dest="admin_command", help="Admin commands")
+    admin_parser = subparsers.add_parser(
+        "admin", help="Administrative interface")
+    admin_subparsers = admin_parser.add_subparsers(
+        dest="admin_command", help="Admin commands")
 
-    status_parser = admin_subparsers.add_parser("status", help="Show server status")
-    status_parser.add_argument("--host", default="localhost", help="Server host")
-    status_parser.add_argument("--port", type=int, default=11434, help="Server port")
+    status_parser = admin_subparsers.add_parser(
+        "status", help="Show server status")
+    status_parser.add_argument(
+        "--host", default="localhost", help="Server host")
+    status_parser.add_argument(
+        "--port", type=int, default=11434, help="Server port")
 
-    config_admin_parser = admin_subparsers.add_parser("config", help="Show configuration")
+    config_admin_parser = admin_subparsers.add_parser(
+        "config", help="Show configuration")
     config_admin_parser.add_argument("--format", choices=["json", "yaml", "table"],
-                                    default="table", help="Output format")
+                                     default="table", help="Output format")
 
-    models_parser = admin_subparsers.add_parser("models", help="List available models")
-    models_parser.add_argument("--host", default="localhost", help="Server host")
-    models_parser.add_argument("--port", type=int, default=11434, help="Server port")
+    models_parser = admin_subparsers.add_parser(
+        "models", help="List available models")
+    models_parser.add_argument(
+        "--host", default="localhost", help="Server host")
+    models_parser.add_argument(
+        "--port", type=int, default=11434, help="Server port")
 
     # Health subcommand
     health_parser = subparsers.add_parser("health", help="Health check")
-    health_parser.add_argument("--host", default="localhost", help="Server host")
-    health_parser.add_argument("--port", type=int, default=11434, help="Server port")
-    health_parser.add_argument("--timeout", type=float, default=10.0, help="Request timeout")
-    health_parser.add_argument("--json", action="store_true", help="Output JSON format")
+    health_parser.add_argument(
+        "--host", default="localhost", help="Server host")
+    health_parser.add_argument(
+        "--port", type=int, default=11434, help="Server port")
+    health_parser.add_argument(
+        "--timeout", type=float, default=10.0, help="Request timeout")
+    health_parser.add_argument(
+        "--json", action="store_true", help="Output JSON format")
 
     # Config subcommand
-    config_parser = subparsers.add_parser("config", help="Configuration management")
-    config_parser.add_argument("--validate", action="store_true", help="Validate configuration")
-    config_parser.add_argument("--show", action="store_true", help="Show current configuration")
+    config_parser = subparsers.add_parser(
+        "config", help="Configuration management")
+    config_parser.add_argument(
+        "--validate", action="store_true", help="Validate configuration")
+    config_parser.add_argument(
+        "--show", action="store_true", help="Show current configuration")
     config_parser.add_argument("--format", choices=["json", "yaml", "env"],
-                              default="yaml", help="Output format")
+                               default="yaml", help="Output format")
 
     # Benchmark subcommand
-    benchmark_parser = subparsers.add_parser("benchmark", help="Performance benchmarking")
-    benchmark_parser.add_argument("--host", default="localhost", help="Server host")
-    benchmark_parser.add_argument("--port", type=int, default=11434, help="Server port")
-    benchmark_parser.add_argument("--requests", type=int, default=100, help="Number of requests")
-    benchmark_parser.add_argument("--concurrency", type=int, default=10, help="Concurrent requests")
-    benchmark_parser.add_argument("--model", default="llama2", help="Model to test")
+    benchmark_parser = subparsers.add_parser(
+        "benchmark", help="Performance benchmarking")
+    benchmark_parser.add_argument(
+        "--host", default="localhost", help="Server host")
+    benchmark_parser.add_argument(
+        "--port", type=int, default=11434, help="Server port")
+    benchmark_parser.add_argument(
+        "--requests", type=int, default=100, help="Number of requests")
+    benchmark_parser.add_argument(
+        "--concurrency", type=int, default=10, help="Concurrent requests")
+    benchmark_parser.add_argument(
+        "--model", default="llama2", help="Model to test")
 
     # Test subcommand
     test_parser = subparsers.add_parser("test", help="Run tests")
-    test_parser.add_argument("--coverage", action="store_true", help="Run with coverage")
-    test_parser.add_argument("--verbose", "-v", action="store_true", help="Verbose output")
-    test_parser.add_argument("--fast", action="store_true", help="Skip slow tests")
-    test_parser.add_argument("--integration", action="store_true", help="Run integration tests only")
-    test_parser.add_argument("--unit", action="store_true", help="Run unit tests only")
+    test_parser.add_argument(
+        "--coverage", action="store_true", help="Run with coverage")
+    test_parser.add_argument(
+        "--verbose", "-v", action="store_true", help="Verbose output")
+    test_parser.add_argument(
+        "--fast", action="store_true", help="Skip slow tests")
+    test_parser.add_argument(
+        "--integration", action="store_true", help="Run integration tests only")
+    test_parser.add_argument(
+        "--unit", action="store_true", help="Run unit tests only")
     test_parser.add_argument("path", nargs="*", help="Specific test paths")
 
     # Lint subcommand
     lint_parser = subparsers.add_parser("lint", help="Code linting")
-    lint_parser.add_argument("--fix", action="store_true", help="Auto-fix issues where possible")
-    lint_parser.add_argument("--check-only", action="store_true", help="Check only, don't fix")
+    lint_parser.add_argument("--fix", action="store_true",
+                             help="Auto-fix issues where possible")
+    lint_parser.add_argument(
+        "--check-only", action="store_true", help="Check only, don't fix")
 
     # Format subcommand
     format_parser = subparsers.add_parser("format", help="Code formatting")
-    format_parser.add_argument("--check", action="store_true", help="Check formatting only")
-    format_parser.add_argument("path", nargs="*", default=["src", "tests"], help="Paths to format")
+    format_parser.add_argument(
+        "--check", action="store_true", help="Check formatting only")
+    format_parser.add_argument(
+        "path", nargs="*", default=["src", "tests"], help="Paths to format")
 
     args = parser.parse_args()
 
@@ -752,7 +820,7 @@ Examples:
     elif args.subcommand == "health":
         # Override sys.argv for health_check
         sys.argv = ["ollama-proxy-health", "--host", args.host, "--port", str(args.port),
-                   "--timeout", str(args.timeout)]
+                    "--timeout", str(args.timeout)]
         if args.json:
             sys.argv.append("--json")
         health_check()
@@ -768,8 +836,8 @@ Examples:
     elif args.subcommand == "benchmark":
         # Override sys.argv for benchmark_main
         sys.argv = ["ollama-proxy-benchmark", "--host", args.host, "--port", str(args.port),
-                   "--requests", str(args.requests), "--concurrency", str(args.concurrency),
-                   "--model", args.model]
+                    "--requests", str(args.requests), "--concurrency", str(args.concurrency),
+                    "--model", args.model]
         benchmark_main()
     elif args.subcommand == "test":
         # Override sys.argv for test_main

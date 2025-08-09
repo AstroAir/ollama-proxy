@@ -160,13 +160,15 @@ class TestOpenRouterError:
         assert error_with_retry.get_retry_after() == 60
 
         # Non-rate-limit error
-        error_without_retry = OpenRouterError(message="Bad request", status_code=400)
+        error_without_retry = OpenRouterError(
+            message="Bad request", status_code=400)
         assert error_without_retry.get_retry_after() is None
 
     def test_is_retryable(self):
         """Test retryable error detection."""
         # Rate limit error - retryable
-        rate_limit_error = OpenRouterError(message="Rate limited", status_code=429)
+        rate_limit_error = OpenRouterError(
+            message="Rate limited", status_code=429)
         assert rate_limit_error.is_retryable()
 
         # Server error - retryable
@@ -212,7 +214,8 @@ class TestConfigurationError:
 
     def test_basic_creation(self):
         """Test basic configuration error creation."""
-        error = ConfigurationError(message="Invalid config", config_key="test_key")
+        error = ConfigurationError(
+            message="Invalid config", config_key="test_key")
         assert error.message == "Invalid config"
         assert error.config_key == "test_key"
         assert error.status_code == 500
@@ -225,7 +228,8 @@ class TestNetworkError:
     def test_basic_creation(self):
         """Test basic network error creation."""
         original_error = ConnectionError("Connection failed")
-        error = NetworkError(message="Network issue", original_error=original_error)
+        error = NetworkError(message="Network issue",
+                             original_error=original_error)
         assert error.message == "Network issue"
         assert error.original_error == original_error
         assert error.status_code == 503
@@ -234,7 +238,8 @@ class TestNetworkError:
     def test_details_with_original_error(self):
         """Test details inclusion with original error."""
         original_error = ConnectionError("Connection failed")
-        error = NetworkError(message="Network issue", original_error=original_error)
+        error = NetworkError(message="Network issue",
+                             original_error=original_error)
         result = error.to_dict()
 
         assert result["details"]["original_error"] == "Connection failed"
@@ -259,7 +264,8 @@ class TestMapOpenRouterError:
         response_data = {
             "error": {"message": "Invalid model", "code": "model_not_found"}
         }
-        error = map_openrouter_error(status_code=404, response_data=response_data)
+        error = map_openrouter_error(
+            status_code=404, response_data=response_data)
         assert "Invalid model" in error.message
 
     def test_error_with_code_and_message(self):
@@ -267,7 +273,8 @@ class TestMapOpenRouterError:
         response_data = {
             "error": {"code": "rate_limit_exceeded", "message": "Too many requests"}
         }
-        error = map_openrouter_error(status_code=429, response_data=response_data)
+        error = map_openrouter_error(
+            status_code=429, response_data=response_data)
         # Status code formatting takes precedence over the extracted code:message format
         assert "Rate limit exceeded: Too many requests" in error.message
 

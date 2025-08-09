@@ -67,7 +67,8 @@ class TestOpenRouterClientRequests:
         with patch(
             "httpx.AsyncClient.post", new_callable=AsyncMock, return_value=mock_response
         ) as mock_post:
-            payload = {"model": "gpt-4", "messages": [{"role": "user", "content": "Hi"}]}
+            payload = {"model": "gpt-4",
+                       "messages": [{"role": "user", "content": "Hi"}]}
             response = await client.chat_completion(payload, stream=False)
 
             mock_post.assert_called_once()
@@ -89,6 +90,7 @@ class TestOpenRouterClientRequests:
 """,
         ]
         # Create a mock response that supports async context manager protocol
+
         async def mock_aiter_bytes():
             for chunk in stream_chunks:
                 yield chunk
@@ -102,7 +104,8 @@ class TestOpenRouterClientRequests:
         with patch(
             "httpx.AsyncClient.stream", return_value=mock_response
         ) as mock_stream_method:
-            payload = {"model": "gpt-4", "messages": [{"role": "user", "content": "Hi"}]}
+            payload = {"model": "gpt-4",
+                       "messages": [{"role": "user", "content": "Hi"}]}
             stream_iterator = client.chat_completion_stream(payload)
 
             results = [chunk async for chunk in stream_iterator]
@@ -116,7 +119,8 @@ class TestOpenRouterClientRequests:
         mock_response = httpx.Response(
             400, json={"error": {"message": "Invalid request"}}
         )
-        mock_response.request = httpx.Request("POST", "https://openrouter.ai/api/v1/chat/completions")
+        mock_response.request = httpx.Request(
+            "POST", "https://openrouter.ai/api/v1/chat/completions")
         with patch(
             "httpx.AsyncClient.post", new_callable=AsyncMock, return_value=mock_response
         ):

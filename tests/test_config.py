@@ -100,7 +100,8 @@ class TestLoadModelFilter:
 
     def test_load_model_filter_no_path(self):
         """Test loading model filter with no path."""
-        env_vars = {"OPENROUTER_API_KEY": "test-api-key-1234567890", "MODELS_FILTER_PATH": ""}
+        env_vars = {"OPENROUTER_API_KEY": "test-api-key-1234567890",
+                    "MODELS_FILTER_PATH": ""}
         with patch.dict(os.environ, env_vars):
             settings = Settings()  # type: ignore[call-arg]
             filter_obj = load_model_filter(settings)

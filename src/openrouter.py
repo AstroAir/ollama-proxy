@@ -450,7 +450,8 @@ class OpenRouterClient:
         use chat_completion_stream() method directly.
         """
         if stream:
-            raise ValueError("Use chat_completion_stream() for streaming requests")
+            raise ValueError(
+                "Use chat_completion_stream() for streaming requests")
         return await self._chat_completion_non_stream(payload, **kwargs)
 
     def chat_completion_stream(
@@ -574,7 +575,8 @@ class OpenRouterClient:
         # Add latest OpenRouter-specific parameters if provided
         # These are advanced features for fine-tuning model selection and routing
         if "provider" in kwargs:
-            enhanced["provider"] = kwargs["provider"]  # Force specific provider
+            # Force specific provider
+            enhanced["provider"] = kwargs["provider"]
 
         if "models" in kwargs:
             enhanced["models"] = kwargs["models"]  # Fallback model list
@@ -583,7 +585,8 @@ class OpenRouterClient:
             enhanced["route"] = kwargs["route"]  # Custom routing preferences
 
         if "transforms" in kwargs:
-            enhanced["transforms"] = kwargs["transforms"]  # Response transformations
+            # Response transformations
+            enhanced["transforms"] = kwargs["transforms"]
 
         # Enhanced parameter validation and defaults using pattern matching
         match enhanced.get("model"):
@@ -605,8 +608,6 @@ class OpenRouterClient:
             enhanced["temperature"] = 0.7  # Balanced creativity vs consistency
 
         return enhanced
-
-    
 
     async def fetch_embeddings(self, payload: dict[str, Any]) -> OpenRouterResponse:
         """Fetch embeddings from OpenRouter with enhanced monitoring."""
@@ -701,7 +702,8 @@ async def chat_completion(
     try:
         if stream:
             # For streaming, return the AsyncIterator directly
-            return client.chat_completion_stream(payload)  # AsyncIterator[bytes]
+            # AsyncIterator[bytes]
+            return client.chat_completion_stream(payload)
         else:
             # For non-streaming, await the result
             result = await client.chat_completion(payload, False)

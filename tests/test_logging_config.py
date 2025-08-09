@@ -108,9 +108,10 @@ class TestSetupLogging:
 
         call_args = mock_structlog_configure.call_args
         processors = call_args[1]["processors"]
-        
+
         # Verify key processors are present
-        processor_names = [type(p).__name__ if hasattr(p, '__name__') else str(p) for p in processors]
+        processor_names = [type(p).__name__ if hasattr(
+            p, '__name__') else str(p) for p in processors]
 
         # These processors should be present for proper log formatting
         expected_processors = [
@@ -123,10 +124,12 @@ class TestSetupLogging:
         ]
 
         # Check that we have the right number of processors
-        assert len(processors) >= 7  # At least 7 processors should be configured
+        # At least 7 processors should be configured
+        assert len(processors) >= 7
 
         # Check for specific processor types
-        assert any("PositionalArgumentsFormatter" in name for name in processor_names)
+        assert any(
+            "PositionalArgumentsFormatter" in name for name in processor_names)
         assert any("TimeStamper" in name for name in processor_names)
         assert any("JSONRenderer" in name for name in processor_names)
 
@@ -143,7 +146,7 @@ class TestSetupLogging:
 
         call_args = mock_structlog_configure.call_args
         config = call_args[1]
-        
+
         # Verify structlog configuration parameters
         assert config["context_class"] == dict
         assert config["cache_logger_on_first_use"] is True

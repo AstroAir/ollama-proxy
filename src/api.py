@@ -365,7 +365,8 @@ def _build_chat_payload(
     # Start with core required fields for OpenRouter API
     payload = {
         "model": openrouter_id,  # Use resolved OpenRouter model ID
-        "messages": [msg.model_dump() for msg in req.messages],  # Convert Pydantic models to dicts
+        # Convert Pydantic models to dicts
+        "messages": [msg.model_dump() for msg in req.messages],
         "stream": req.stream,
     }
 

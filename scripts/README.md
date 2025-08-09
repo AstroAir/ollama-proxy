@@ -7,6 +7,7 @@ This directory contains various utility scripts for the ollama-proxy project. Th
 ### 🚀 Startup Scripts
 
 #### `start-server.sh` (Unix/Linux/macOS)
+
 Cross-platform startup script for Unix-like systems.
 
 ```bash
@@ -27,6 +28,7 @@ Cross-platform startup script for Unix-like systems.
 ```
 
 #### `start-server.bat` (Windows)
+
 Windows batch file for starting the server.
 
 ```cmd
@@ -41,6 +43,7 @@ scripts\start-server.bat --host 127.0.0.1 --port 8080
 ```
 
 #### `start-server.ps1` (PowerShell)
+
 PowerShell script with better Windows support.
 
 ```powershell
@@ -55,6 +58,7 @@ PowerShell script with better Windows support.
 ```
 
 #### `launcher.py` (Cross-platform Python)
+
 Universal Python launcher that works on all platforms.
 
 ```bash
@@ -71,6 +75,7 @@ python scripts/launcher.py --check-deps
 ### 🛠️ Development Scripts
 
 #### `dev-setup.sh`
+
 Complete development environment setup script.
 
 ```bash
@@ -85,6 +90,7 @@ Complete development environment setup script.
 ```
 
 Features:
+
 - Installs uv package manager
 - Sets up Python dependencies
 - Configures pre-commit hooks
@@ -93,6 +99,7 @@ Features:
 - Runs initial code quality checks
 
 #### `test-runner.sh`
+
 Advanced test runner with comprehensive options.
 
 ```bash
@@ -114,6 +121,7 @@ Advanced test runner with comprehensive options.
 ```
 
 Features:
+
 - Multiple test selection options (unit, integration, performance)
 - Coverage reporting (HTML, XML, terminal)
 - Parallel test execution
@@ -124,6 +132,7 @@ Features:
 ### 🏗️ Build and Deployment Scripts
 
 #### `build-deploy.sh`
+
 Comprehensive build and deployment automation.
 
 ```bash
@@ -144,6 +153,7 @@ Comprehensive build and deployment automation.
 ```
 
 Features:
+
 - Package building with uv
 - Docker image building and pushing
 - Release management with git tagging
@@ -154,6 +164,7 @@ Features:
 ### 🔧 Maintenance Scripts
 
 #### `maintenance.sh`
+
 Server maintenance and monitoring utilities.
 
 ```bash
@@ -180,6 +191,7 @@ Server maintenance and monitoring utilities.
 ```
 
 Features:
+
 - Health monitoring
 - Performance metrics
 - Log analysis
@@ -193,11 +205,13 @@ Features:
 ### Development Workflow
 
 1. **Initial Setup**
+
    ```bash
    ./scripts/dev-setup.sh
    ```
 
 2. **Start Development Server**
+
    ```bash
    ./scripts/start-server.sh --dev
    # or
@@ -205,11 +219,13 @@ Features:
    ```
 
 3. **Run Tests During Development**
+
    ```bash
    ./scripts/test-runner.sh --watch --unit --fast
    ```
 
 4. **Check Code Quality**
+
    ```bash
    ./scripts/build-deploy.sh check
    ```
@@ -217,22 +233,26 @@ Features:
 ### Production Deployment
 
 1. **Build and Test**
+
    ```bash
    ./scripts/build-deploy.sh check
    ./scripts/build-deploy.sh build
    ```
 
 2. **Create Release**
+
    ```bash
    ./scripts/build-deploy.sh release --version 1.0.0
    ```
 
 3. **Build Docker Image**
+
    ```bash
    ./scripts/build-deploy.sh docker --tag v1.0.0 --push
    ```
 
 4. **Monitor Production**
+
    ```bash
    ./scripts/maintenance.sh health --host production.com
    ./scripts/maintenance.sh monitor --host production.com
@@ -241,22 +261,26 @@ Features:
 ### Maintenance Tasks
 
 1. **Regular Cleanup**
+
    ```bash
    ./scripts/maintenance.sh cleanup
    ```
 
 2. **Update Dependencies**
+
    ```bash
    ./scripts/maintenance.sh update-deps
    ./scripts/test-runner.sh  # Verify everything still works
    ```
 
 3. **Security Audit**
+
    ```bash
    ./scripts/maintenance.sh security-scan
    ```
 
 4. **Performance Monitoring**
+
    ```bash
    ./scripts/maintenance.sh benchmark
    ./scripts/maintenance.sh metrics
@@ -273,15 +297,18 @@ All scripts are designed to work across different platforms:
 ### Platform-Specific Notes
 
 #### Windows
+
 - Batch files (`.bat`) have limited functionality
 - PowerShell scripts (`.ps1`) provide better features
 - May need to set execution policy: `Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser`
 
 #### macOS
+
 - All shell scripts should work out of the box
 - May need to install additional tools via Homebrew
 
 #### Linux
+
 - All shell scripts should work on most distributions
 - Some distributions may need additional packages
 
@@ -311,11 +338,13 @@ When adding new scripts:
 ### Common Issues
 
 1. **Permission Denied**
+
    ```bash
    chmod +x scripts/*.sh
    ```
 
 2. **Command Not Found (uv)**
+
    ```bash
    # Install uv
    curl -LsSf https://astral.sh/uv/install.sh | sh
@@ -332,6 +361,7 @@ When adding new scripts:
 ### Getting Help
 
 Each script includes a help option:
+
 ```bash
 ./scripts/script-name.sh --help
 ```

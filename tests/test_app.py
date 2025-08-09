@@ -55,7 +55,8 @@ class TestCreateApp:
         with patch("src.app.lifespan"):
             app = create_app()
             # Check that routes are registered
-            route_paths = [getattr(route, 'path', None) for route in app.routes if hasattr(route, 'path')]
+            route_paths = [getattr(route, 'path', None)
+                           for route in app.routes if hasattr(route, 'path')]
             assert "/" in route_paths
 
     def test_create_app_has_cors_middleware(self):
@@ -63,7 +64,8 @@ class TestCreateApp:
         with patch("src.app.lifespan"):
             app = create_app()
             # Check that CORS middleware is in the middleware stack
-            middleware_types = [getattr(middleware.cls, '__name__', None) for middleware in app.user_middleware if hasattr(middleware, 'cls')]
+            middleware_types = [getattr(middleware.cls, '__name__', None)
+                                for middleware in app.user_middleware if hasattr(middleware, 'cls')]
             assert "CORSMiddleware" in middleware_types
 
     def test_create_app_has_exception_handlers(self):
@@ -89,10 +91,10 @@ class TestAppMiddleware:
         with patch("src.app.structlog.get_logger") as mock_get_logger:
             mock_logger = Mock()
             mock_get_logger.return_value = mock_logger
-            
+
             client = TestClient(app)
             response = client.get("/")
-            
+
             # Verify logger was called for request and response
             assert mock_logger.info.call_count >= 2
 
@@ -106,15 +108,15 @@ class TestAppMiddleware:
         with patch("src.app.structlog.get_logger") as mock_get_logger:
             mock_logger = Mock()
             mock_get_logger.return_value = mock_logger
-            
+
             client = TestClient(app)
             response = client.get("/test-error")
-            
+
             assert response.status_code == 400
             data = response.json()
             assert data["error"] == "Test error"
             assert data["type"] == "openrouter_error"
-            
+
             # Verify error was logged
             mock_logger.error.assert_called()
 
@@ -177,7 +179,7 @@ class TestLifespan:
 
         # Create app (this will trigger lifespan)
         app = create_app()
-        
+
         with TestClient(app) as client:
             # App should start successfully
             response = client.get("/")
@@ -201,7 +203,8 @@ class TestLifespan:
         mock_openrouter_client.return_value = mock_client_instance
 
         # Mock OpenRouter error
-        mock_client_instance.fetch_models.side_effect = OpenRouterError("API Error")
+        mock_client_instance.fetch_models.side_effect = OpenRouterError(
+            "API Error")
 
         # App creation should raise the error
         with pytest.raises(OpenRouterError):
@@ -222,7 +225,8 @@ class TestLifespan:
         mock_openrouter_client.return_value = mock_client_instance
 
         # Mock network error
-        mock_client_instance.fetch_models.side_effect = NetworkError("Network Error")
+        mock_client_instance.fetch_models.side_effect = NetworkError(
+            "Network Error")
 
         # App creation should raise the error
         with pytest.raises(NetworkError):
@@ -243,7 +247,8 @@ class TestLifespan:
         mock_openrouter_client.return_value = mock_client_instance
 
         # Mock generic error
-        mock_client_instance.fetch_models.side_effect = ValueError("Generic Error")
+        mock_client_instance.fetch_models.side_effect = ValueError(
+            "Generic Error")
 
         # App creation should raise the error
         with pytest.raises(ValueError):

@@ -52,6 +52,7 @@ def test_api_tags(client):
     assert data["models"][0]["name"] == "gemini-pro:latest"
     assert data["models"][1]["name"] == "gpt-4:latest"
 
+
 @patch("src.openrouter.OpenRouterClient.chat_completion")
 def test_api_chat_non_streaming(mock_chat_completion, client):
     mock_response_data = {

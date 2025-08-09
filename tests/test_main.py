@@ -119,7 +119,7 @@ class TestMain:
         # Call main and expect SystemExit
         with pytest.raises(SystemExit) as exc_info:
             main()
-        
+
         assert exc_info.value.code == 1
 
     @patch("src.main.parse_args")
@@ -132,7 +132,7 @@ class TestMain:
         with patch("src.main.get_settings", side_effect=Exception("Config error")):
             with pytest.raises(SystemExit) as exc_info:
                 main()
-            
+
             assert exc_info.value.code == 1
 
     @patch("src.main.uvicorn.run")

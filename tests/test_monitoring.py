@@ -49,7 +49,7 @@ class TestMetricPoint:
             labels=labels,
             metric_type=MetricType.COUNTER
         )
-        
+
         assert point.name == "test_metric"
         assert point.value == 42.0
         assert point.labels == labels
@@ -66,7 +66,7 @@ class TestMetricPoint:
             timestamp=1234567890.0,
             metric_type=MetricType.GAUGE
         )
-        
+
         result = point.to_dict()
         expected = {
             "name": "test_metric",
@@ -86,7 +86,7 @@ class TestMetricPoint:
                 labels={},
                 timestamp=950.0
             )
-            
+
         with patch("time.time", return_value=1010.0):
             assert point.age_seconds == 60.0
 
@@ -113,7 +113,7 @@ class TestPerformanceStats:
             request_bytes=1024,
             response_bytes=2048
         )
-        
+
         assert stats.total_requests == 1
         assert stats.successful_requests == 1
         assert stats.failed_requests == 0
@@ -131,7 +131,7 @@ class TestPerformanceStats:
             success=False,
             error_type="NetworkError"
         )
-        
+
         assert stats.total_requests == 1
         assert stats.successful_requests == 0
         assert stats.failed_requests == 1
@@ -140,58 +140,58 @@ class TestPerformanceStats:
     def test_success_rate(self):
         """Test success rate calculation."""
         stats = PerformanceStats()
-        
+
         # No requests
         assert stats.success_rate == 0.0
-        
+
         # Add some requests
         stats.add_request(100.0, True)
         stats.add_request(200.0, True)
         stats.add_request(150.0, False)
-        
+
         assert stats.success_rate == 66.66666666666666
 
     def test_average_duration(self):
         """Test average duration calculation."""
         stats = PerformanceStats()
-        
+
         # No requests
         assert stats.average_duration_ms == 0.0
-        
+
         # Add requests
         stats.add_request(100.0, True)
         stats.add_request(200.0, True)
         stats.add_request(300.0, False)
-        
+
         assert stats.average_duration_ms == 200.0
 
     def test_get_percentile(self):
         """Test percentile calculation."""
         stats = PerformanceStats()
-        
+
         # No data
         assert stats.get_percentile(50) == 0.0
-        
+
         # Add data
         for duration in [100, 200, 300, 400, 500]:
             stats.add_request(float(duration), True)
-        
+
         assert stats.get_percentile(50) == 300.0  # Median
         assert stats.get_percentile(90) == 500.0
 
     def test_performance_category(self):
         """Test performance categorization."""
         stats = PerformanceStats()
-        
+
         # Excellent performance
         stats.add_request(50.0, True)
         assert stats.get_performance_category() == "excellent"
-        
+
         # Reset and test good performance
         stats = PerformanceStats()
         stats.add_request(300.0, True)
         assert stats.get_performance_category() == "good"
-        
+
         # Reset and test poor performance
         stats = PerformanceStats()
         stats.add_request(2000.0, True)
@@ -213,14 +213,14 @@ class TestMetricsCollector:
         """Test recording a metric."""
         collector = MetricsCollector()
         labels = {"endpoint": "/test"}
-        
+
         collector.record_metric(
             "test_metric",
             42.0,
             labels,
             MetricType.COUNTER
         )
-        
+
         assert len(collector._metrics) == 1
         metric = collector._metrics[0]
         assert metric.name == "test_metric"
@@ -231,7 +231,7 @@ class TestMetricsCollector:
     def test_record_request(self):
         """Test recording request statistics."""
         collector = MetricsCollector()
-        
+
         collector.record_request(
             endpoint="/api/test",
             duration_ms=150.0,
@@ -239,7 +239,7 @@ class TestMetricsCollector:
             request_bytes=1024,
             response_bytes=2048
         )
-        
+
         # Check endpoint stats
         stats = collector.get_endpoint_stats("/api/test")
         assert stats["total_requests"] == 1
@@ -285,22 +285,22 @@ class TestMetricsCollector:
     def test_memory_management(self):
         """Test memory management with max_metrics limit."""
         collector = MetricsCollector(max_metrics=10)
-        
+
         # Add more metrics than the limit
         for i in range(15):
             collector.record_metric(f"metric_{i}", float(i))
-        
+
         # Should have removed oldest metrics
         assert len(collector._metrics) <= 10
 
     def test_get_health_status(self):
         """Test health status determination."""
         collector = MetricsCollector()
-        
+
         # Add some good performance data
         collector.record_request("/test", 50.0, True)
         collector.record_request("/test", 60.0, True)
-        
+
         health = collector.get_health_status()
         assert health["status"] == "healthy"
         assert health["performance_category"] == "excellent"
@@ -310,14 +310,14 @@ class TestMetricsCollector:
     def test_reset_stats(self):
         """Test resetting statistics."""
         collector = MetricsCollector()
-        
+
         # Add some data
         collector.record_metric("test", 1.0)
         collector.record_request("/test", 100.0, True)
-        
+
         # Reset
         collector.reset_stats()
-        
+
         assert len(collector._metrics) == 0
         stats = collector.get_endpoint_stats()
         assert stats["global"]["total_requests"] == 0
@@ -337,13 +337,13 @@ class TestGlobalFunctions:
         # Reset global collector
         import src.monitoring
         src.monitoring._metrics_collector = None
-        
+
         record_metric("test_metric", 123.0, {"test": "value"})
-        
+
         collector = get_metrics_collector()
         metrics = collector.get_metrics()
         assert len(metrics) >= 1
-        
+
         # Find our metric
         test_metrics = [m for m in metrics if m.name == "test_metric"]
         assert len(test_metrics) == 1
@@ -355,11 +355,11 @@ class TestGlobalFunctions:
         # Reset global collector
         import src.monitoring
         src.monitoring._metrics_collector = None
-        
+
         async with track_request("/api/test", {"method": "GET"}):
             # Simulate some work
             await asyncio.sleep(0.01)
-        
+
         collector = get_metrics_collector()
         stats = collector.get_endpoint_stats("/api/test")
         assert stats["total_requests"] == 1
@@ -372,11 +372,11 @@ class TestGlobalFunctions:
         # Reset global collector
         import src.monitoring
         src.monitoring._metrics_collector = None
-        
+
         with pytest.raises(ValueError):
             async with track_request("/api/test"):
                 raise ValueError("Test error")
-        
+
         collector = get_metrics_collector()
         stats = collector.get_endpoint_stats("/api/test")
         assert stats["total_requests"] == 1

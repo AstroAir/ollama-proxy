@@ -69,7 +69,8 @@ class TestEnvironment:
 
     def test_from_string_basic(self):
         """Test basic string conversion."""
-        assert Environment.from_string("development") == Environment.DEVELOPMENT
+        assert Environment.from_string(
+            "development") == Environment.DEVELOPMENT
         assert Environment.from_string("staging") == Environment.STAGING
         assert Environment.from_string("production") == Environment.PRODUCTION
 
@@ -220,8 +221,10 @@ class TestSettings:
 
     def test_api_key_validation_openai_style(self, monkeypatch):
         """Test OpenAI-style API key validation."""
-        monkeypatch.setenv("OPENROUTER_API_KEY", "sk-1234567890abcdef1234567890abcdef")
-        settings = Settings(OPENROUTER_API_KEY="sk-1234567890abcdef1234567890abcdef")
+        monkeypatch.setenv("OPENROUTER_API_KEY",
+                           "sk-1234567890abcdef1234567890abcdef")
+        settings = Settings(
+            OPENROUTER_API_KEY="sk-1234567890abcdef1234567890abcdef")
         assert settings.openrouter_api_key.startswith("sk-")
 
     def test_api_key_validation_openrouter_style(self, monkeypatch):
@@ -246,7 +249,8 @@ class TestSettings:
 
     def test_api_key_validation_invalid_characters(self, monkeypatch):
         """Test API key with invalid characters."""
-        monkeypatch.setenv("OPENROUTER_API_KEY", "invalid@key#with$special%chars")
+        monkeypatch.setenv("OPENROUTER_API_KEY",
+                           "invalid@key#with$special%chars")
         with pytest.raises(ValidationError, match="invalid characters"):
             Settings(OPENROUTER_API_KEY="invalid@key#with$special%chars")
 
