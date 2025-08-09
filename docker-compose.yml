@@ -1,0 +1,65 @@
+version: '3.8'
+
+services:
+  ollama-proxy:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "11434:11434"
+    environment:
+      # Required: OpenRouter API key
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+      
+      # Optional: Server configuration
+      - HOST=0.0.0.0
+      - PORT=11434
+      - LOG_LEVEL=INFO
+      - ENVIRONMENT=production
+      
+      # Optional: Model filtering
+      - MODELS_FILTER_PATH=/app/data/models-filter.txt
+      
+      # Optional: OpenRouter configuration
+      - OPENROUTER_BASE_URL=https://openrouter.ai/api/v1
+      - OPENROUTER_TIMEOUT=300
+      
+      # Optional: Performance settings
+      - MAX_CONCURRENT_REQUESTS=100
+      
+      # Optional: Health check settings
+      - HEALTH_CHECK_INTERVAL=60
+    volumes:
+      # Mount model filter file if you have one
+      - ./models-filter.txt:/app/data/models-filter.txt:ro
+      # Mount logs directory (optional)
+      - ./logs:/app/logs
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import httpx; httpx.get('http://localhost:11434/health', timeout=5)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    # Resource limits (adjust as needed)
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
+
+  # Optional: Add a reverse proxy like nginx
+  # nginx:
+  #   image: nginx:alpine
+  #   ports:
+  #     - "80:80"
+  #     - "443:443"
+  #   volumes:
+  #     - ./nginx.conf:/etc/nginx/nginx.conf:ro
+  #     - ./ssl:/etc/nginx/ssl:ro
+  #   depends_on:
+  #     - ollama-proxy
+  #   restart: unless-stopped

@@ -1,0 +1,21 @@
+# Example model filter file
+# Add one model name per line (using Ollama naming convention)
+# Comments start with #
+
+# OpenAI Models
+gpt-4:latest
+gpt-3-5-turbo:latest
+
+# Anthropic Models
+claude-3-5-sonnet:latest
+claude-3-haiku:latest
+
+# Meta Models
+llama-2-7b-chat:latest
+llama-2-13b-chat:latest
+
+# Google Models
+gemini-pro:latest
+
+# Other Popular Models
+mixtral-8x7b-instruct:latest
