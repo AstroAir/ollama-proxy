@@ -39,7 +39,25 @@ test = [
 ]
 
 [project.scripts]
+# Main application entry points
 ollama-proxy = "src.main:main"
+ollama-proxy-server = "src.main:main"
+ollama-proxy-dev = "src.main:dev_main"
+ollama-proxy-daemon = "src.main:daemon_main"
+
+# Administrative and utility entry points
+ollama-proxy-admin = "src.main:admin_main"
+ollama-proxy-health = "src.main:health_check"
+ollama-proxy-config = "src.main:config_main"
+ollama-proxy-benchmark = "src.main:benchmark_main"
+
+# Development and testing entry points
+ollama-proxy-test = "src.main:test_main"
+ollama-proxy-lint = "src.main:lint_main"
+ollama-proxy-format = "src.main:format_main"
+
+# Unified CLI interface
+ollama-proxy-cli = "src.main:cli_main"
 
 [[tool.uv.index]]
 url = "https://mirrors.aliyun.com/pypi/simple/"
