@@ -1,10 +1,75 @@
-# Python-generated files
+# Byte-compiled / optimized / DLL files
 __pycache__/
-*.py[oc]
+*.py[cod]
+*$py.class
+
+# Distribution / packaging
+.Python
 build/
 dist/
+sdist/
 wheels/
-*.egg-info
+.eggs/
+*.egg-info/
+*.egg
 
 # Virtual environments
-.venv
+.venv/
+venv/
+env/
+ENV/
+
+# Unit test / coverage reports
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+.pytest_cache/
+.junit/
+coverage.xml
+
+# Type checker
+.mypy_cache/
+.pyright/
+.pyre/
+
+# Ruff / Black
+.ruff_cache/
+.cache/
+
+# Benchmarks
+.benchmarks/
+
+# IDEs / Editors
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Local configs / env
+.env
+.env.*
+!*.example
+configs/*.local.*
+
+# PySearch cache
+.pysearch-cache
+
+# Documentation build artifacts
+site/
+.mkdocs_cache/
+docs_build/
+
+# MkDocs temporary files
+.mkdocs/
+mkdocs_cache/
+
+# Documentation generation cache
+.docstring_cache/
+.api_docs_cache/

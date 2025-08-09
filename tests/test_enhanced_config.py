@@ -322,13 +322,14 @@ class TestSettings:
 
         monkeypatch.setenv("ENVIRONMENT", "development")
         dev_settings = Settings(OPENROUTER_API_KEY="valid-test-key-12345")
-        assert dev_settings.is_development() == True
-        assert dev_settings.is_production() == False
+        self.assertFalse(settings.is_model_filtering_enabled)
+        assert dev_settings.environment.is_development
+        assert not dev_settings.environment.is_production
 
         monkeypatch.setenv("ENVIRONMENT", "production")
         prod_settings = Settings(OPENROUTER_API_KEY="valid-test-key-12345")
-        assert prod_settings.is_development() == False
-        assert prod_settings.is_production() == True
+        assert not prod_settings.environment.is_development
+        assert prod_settings.environment.is_production
 
 
 if __name__ == "__main__":

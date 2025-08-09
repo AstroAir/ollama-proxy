@@ -39,28 +39,81 @@ router = APIRouter()
 
 
 def get_app_state(request: Request) -> AppState:
-    """Dependency to get application state."""
+    """FastAPI dependency to retrieve the application state from the request context.
+
+    This dependency function provides access to the global application state
+    that contains configuration, model mappings, and other shared resources.
+
+    Args:
+        request: The FastAPI request object containing the application state.
+
+    Returns:
+        AppState: The application state containing configuration and model mappings.
+
+    Example:
+        >>> @router.get("/example")
+        >>> async def example_endpoint(app_state: AppState = Depends(get_app_state)):
+        >>>     return {"model_count": len(app_state.all_models)}
+    """
     return request.app.state.app_state
 
 
 def get_openrouter_client(
     app_state: Annotated[AppState, Depends(get_app_state)],
 ) -> OpenRouterClient:
-    """Dependency to get OpenRouter client."""
+    """FastAPI dependency to retrieve the OpenRouter client from application state.
+
+    This dependency provides access to the configured OpenRouter client instance
+    for making API calls to the OpenRouter service.
+
+    Args:
+        app_state: The application state containing the OpenRouter client.
+
+    Returns:
+        OpenRouterClient: Configured client for OpenRouter API interactions.
+
+    Example:
+        >>> @router.post("/example")
+        >>> async def example_endpoint(
+        >>>     client: OpenRouterClient = Depends(get_openrouter_client)
+        >>> ):
+        >>>     response = await client.chat_completion(payload)
+        >>>     return response
+    """
     return app_state.openrouter_client
 
 
 @asynccontextmanager
 async def error_context(request_id: str | None = None):
-    """Context manager for enhanced error handling."""
+    """Async context manager for enhanced error handling and logging.
+
+    This context manager provides structured error handling for API endpoints,
+    automatically converting unexpected exceptions to ProxyError instances
+    while preserving ProxyError exceptions as-is.
+
+    Args:
+        request_id: Optional request identifier for error tracking.
+
+    Yields:
+        ErrorContext: Context object containing request metadata.
+
+    Raises:
+        ProxyError: For both expected proxy errors and converted unexpected errors.
+
+    Example:
+        >>> async with error_context("req_123") as ctx:
+        >>>     # API endpoint logic here
+        >>>     result = await some_operation()
+        >>>     return result
+    """
     context = ErrorContext(request_id=request_id)
     try:
         yield context
     except ProxyError:
-        # Re-raise proxy errors as-is
+        # Re-raise proxy errors as-is to maintain error hierarchy
         raise
     except Exception as e:
-        # Convert unexpected errors to proxy errors
+        # Convert unexpected errors to proxy errors with proper logging
         logger.error("Unexpected error", error=str(e),
                      error_type=type(e).__name__)
         raise ProxyError(
@@ -81,6 +134,14 @@ async def head_root():
 
 @router.get("/")
 async def root():
+    """Root endpoint that mimics Ollama's behavior.
+
+    Returns a simple text response indicating the server is running,
+    maintaining compatibility with Ollama clients that check this endpoint.
+
+    Returns:
+        PlainTextResponse: Simple text response "Ollama is running".
+    """
     # Return plain text like standard Ollama server
     # This also implicitly handles HEAD / requests via FastAPI
     return PlainTextResponse("Ollama is running")
@@ -88,6 +149,18 @@ async def root():
 
 @router.get("/api/version")
 def api_version():
+    """Get the API version information.
+
+    Returns version information in Ollama-compatible format, indicating
+    this is the OpenRouter proxy version.
+
+    Returns:
+        dict: Version information with "version" key.
+
+    Example:
+        >>> GET /api/version
+        >>> {"version": "0.1.0-openrouter"}
+    """
     return {"version": "0.1.0-openrouter"}
 
 
@@ -212,15 +285,18 @@ def _resolve_and_validate_model(
     model_name: str, app_state: AppState
 ) -> tuple[str, str]:
     """Resolve and validate model name with enhanced error handling."""
-    # Resolve model name using the utility function
+    # First, resolve the potentially short/aliased model name to full names
+    # This handles cases like "gpt-4" -> "gpt-4:latest" -> "openai/gpt-4"
     resolved_ollama_name, openrouter_id = utils.resolve_model_name(
         model_name, app_state.ollama_to_openrouter_map
     )
 
+    # Ensure the model exists in our mapping
     if not resolved_ollama_name or not openrouter_id:
         raise ModelNotFoundError(model_name)
 
-    # Check against filter using the enhanced filter logic
+    # Apply model filtering if configured
+    # This allows administrators to restrict which models are available
     if not app_state.model_filter.is_allowed(resolved_ollama_name):
         raise ModelForbiddenError(resolved_ollama_name)
 
@@ -284,16 +360,20 @@ def _build_chat_payload(
     req: models.OllamaChatRequest, openrouter_id: str
 ) -> dict[str, Any]:
     """Build OpenRouter payload from Ollama chat request."""
+    # Start with core required fields for OpenRouter API
     payload = {
-        "model": openrouter_id,
-        "messages": [msg.model_dump() for msg in req.messages],
+        "model": openrouter_id,  # Use resolved OpenRouter model ID
+        "messages": [msg.model_dump() for msg in req.messages],  # Convert Pydantic models to dicts
         "stream": req.stream,
     }
 
-    # Add optional parameters
+    # Merge any additional options from the Ollama request
+    # This allows passing through parameters like temperature, max_tokens, etc.
     if req.options:
         payload.update(req.options)
 
+    # Handle JSON response format request
+    # Ollama uses "json" string, OpenRouter expects structured format
     if req.format == models.ResponseFormat.JSON:
         payload["response_format"] = {"type": "json_object"}
 
@@ -311,27 +391,36 @@ async def _handle_streaming_chat(
 
     async def streamer():
         try:
+            # Buffer for accumulating partial chunks that may be split across network packets
             buffer = ""
             stream_result = await client.chat_completion(payload, stream=True)
 
             # Type guard to ensure we have an AsyncIterator (not OpenRouterResponse)
+            # This is necessary because the return type is a union
             if not hasattr(stream_result, '__aiter__'):
                 raise OpenRouterError(
                     "Expected streaming response but got non-streaming response")
 
             stream_iterator = stream_result  # type: ignore[assignment]
+
+            # Process each chunk from the OpenRouter streaming response
             async for raw_chunk in stream_iterator:
                 if raw_chunk:
                     try:
+                        # Decode bytes to string, handling potential encoding issues
                         decoded_chunk = raw_chunk.decode("utf-8")
                         buffer += decoded_chunk
                     except UnicodeDecodeError:
+                        # Skip malformed chunks rather than failing the entire stream
                         continue
 
+                    # Process complete lines from the buffer
+                    # OpenRouter sends Server-Sent Events (SSE) format with \n delimiters
                     while "\n" in buffer:
                         line_end = buffer.find("\n")
                         raw_line = buffer[:line_end]
                         decoded_line = raw_line.strip()
+                        # Keep remaining data in buffer for next iteration
                         buffer = buffer[line_end + 1:]
 
                         if decoded_line.startswith("data:"):

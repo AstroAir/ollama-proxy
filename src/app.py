@@ -19,13 +19,29 @@ from .utils import build_ollama_to_openrouter_map, build_openrouter_to_ollama_ma
 
 
 def setup_logging(settings: Settings) -> None:
-    """Configure structured logging."""
+    """Configure structured logging for the application.
+
+    Sets up both standard library logging and structlog with appropriate
+    processors for structured JSON logging. This configuration ensures
+    consistent log formatting across the application.
+
+    Args:
+        settings: Application settings containing log level and format configuration.
+
+    Note:
+        This function configures logging globally and should only be called once
+        during application startup.
+
+    Example:
+        >>> settings = get_settings()
+        >>> setup_logging(settings)
+    """
     logging.basicConfig(
         level=getattr(logging, settings.log_level),
         format=settings.log_format,
     )
 
-    # Configure structlog
+    # Configure structlog with comprehensive processors for production logging
     structlog.configure(
         processors=[
             structlog.stdlib.filter_by_level,
@@ -47,7 +63,31 @@ def setup_logging(settings: Settings) -> None:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-    """Application lifespan manager."""
+    """Manage the application lifespan with proper resource initialization and cleanup.
+
+    This async context manager handles the complete lifecycle of the application,
+    including:
+    - Setting up logging configuration
+    - Initializing the OpenRouter client
+    - Fetching and caching model information
+    - Building model name mappings
+    - Graceful cleanup on shutdown
+
+    Args:
+        app: The FastAPI application instance.
+
+    Yields:
+        None: Control is yielded back to FastAPI during normal operation.
+
+    Raises:
+        OpenRouterError: If OpenRouter API initialization fails.
+        NetworkError: If network connectivity issues prevent initialization.
+        Exception: For any other initialization failures.
+
+    Example:
+        This function is automatically called by FastAPI when used as a lifespan handler:
+        >>> app = FastAPI(lifespan=lifespan)
+    """
     settings = get_settings()
     setup_logging(settings)
 
@@ -107,7 +147,23 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
 
 def create_app() -> FastAPI:
-    """Create and configure the FastAPI application."""
+    """Create and configure the FastAPI application with all necessary middleware and handlers.
+
+    This factory function creates a fully configured FastAPI application instance with:
+    - CORS middleware for cross-origin requests
+    - Request logging middleware for observability
+    - Global exception handlers for consistent error responses
+    - API route registration
+    - Application lifespan management
+
+    Returns:
+        FastAPI: A fully configured FastAPI application instance ready to serve requests.
+
+    Example:
+        >>> app = create_app()
+        >>> # App is ready to be served with uvicorn
+        >>> uvicorn.run(app, host="0.0.0.0", port=8000)
+    """
     app = FastAPI(
         title="Ollama Proxy",
         description="A proxy server that translates Ollama API calls to OpenRouter",

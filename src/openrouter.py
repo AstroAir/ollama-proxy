@@ -114,20 +114,20 @@ class RequestMetrics:
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for logging with enhanced metrics."""
         return {
-            "request_id": self.request_id,
-            "endpoint": str(self.endpoint),
-            "duration_ms": self.duration_ms,
-            "model": self.model,
-            "stream": self.stream,
-            "request_size": self.request_size,
-            "response_size": self.response_size,
-            "status_code": self.status_code,
-            "error": self.error,
-            "is_complete": self.is_complete,
-            "is_successful": self.is_successful,
-            "performance_category": self.performance_category,
-            "retry_count": self.retry_count,
-            "cache_hit": self.cache_hit,
+            "metrics_request_id": self.request_id,
+            "metrics_endpoint": str(self.endpoint),
+            "metrics_duration_ms": self.duration_ms,
+            "metrics_model": self.model,
+            "metrics_stream": self.stream,
+            "metrics_request_size": self.request_size,
+            "metrics_response_size": self.response_size,
+            "metrics_status_code": self.status_code,
+            "metrics_error": self.error,
+            "metrics_is_complete": self.is_complete,
+            "metrics_is_successful": self.is_successful,
+            "metrics_performance_category": self.performance_category,
+            "metrics_retry_count": self.retry_count,
+            "metrics_cache_hit": self.cache_hit,
         }
 
 
@@ -528,34 +528,37 @@ class OpenRouterClient:
         enhanced = payload.copy()
 
         # Add latest OpenRouter-specific parameters if provided
+        # These are advanced features for fine-tuning model selection and routing
         if "provider" in kwargs:
-            enhanced["provider"] = kwargs["provider"]
+            enhanced["provider"] = kwargs["provider"]  # Force specific provider
 
         if "models" in kwargs:
-            enhanced["models"] = kwargs["models"]
+            enhanced["models"] = kwargs["models"]  # Fallback model list
 
         if "route" in kwargs:
-            enhanced["route"] = kwargs["route"]
+            enhanced["route"] = kwargs["route"]  # Custom routing preferences
 
         if "transforms" in kwargs:
-            enhanced["transforms"] = kwargs["transforms"]
+            enhanced["transforms"] = kwargs["transforms"]  # Response transformations
 
-        # Enhanced parameter validation and defaults
+        # Enhanced parameter validation and defaults using pattern matching
         match enhanced.get("model"):
             case str() as model if "/" not in model:
-                # Add default provider if not specified
+                # Warn about missing provider prefix which can affect routing quality
+                # OpenRouter performs better when provider is explicitly specified
                 logger.warning(
                     f"Model '{model}' may need provider prefix for optimal routing"
                 )
             case _:
-                pass
+                pass  # Model ID is properly formatted or not a string
 
-        # Set reasonable defaults for better performance
+        # Set reasonable defaults for better performance and reliability
+        # These values are based on OpenRouter best practices and common use cases
         if "max_tokens" not in enhanced:
-            enhanced["max_tokens"] = 4096
+            enhanced["max_tokens"] = 4096  # Generous limit to avoid truncation
 
         if "temperature" not in enhanced:
-            enhanced["temperature"] = 0.7
+            enhanced["temperature"] = 0.7  # Balanced creativity vs consistency
 
         return enhanced
 
@@ -565,17 +568,21 @@ class OpenRouterClient:
         """Handle streaming response from OpenRouter with enhanced monitoring."""
         try:
             chunk_count = 0
+            # Stream response chunks as they arrive from OpenRouter
+            # This maintains low latency by forwarding data immediately
             async for chunk in response.aiter_bytes():
                 if chunk:
                     chunk_count += 1
-                    yield chunk
+                    yield chunk  # Forward chunk immediately to client
 
+            # Log completion metrics for monitoring and debugging
             logger.debug(
                 "Streaming response completed",
                 chunk_count=chunk_count,
                 **metrics.to_dict(),
             )
         except Exception as e:
+            # Track errors for monitoring and convert to our error type
             self._error_count += 1
             logger.error(
                 "Error in streaming response", error=str(e), **metrics.to_dict()

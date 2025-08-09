@@ -47,16 +47,18 @@ default = true
 
 [dependency-groups]
 dev = [
+    "black>=24.0.0",
+    "flake8>=7.0.0",
+    "isort>=5.13.0",
+    "mkdocs-material>=9.0.0",
+    "mkdocs>=1.5.0",
     "mypy>=1.17.1",
-    "pytest>=8.4.1",
+    "pre-commit>=3.6.0",
+    "psutil>=6.0.0",
     "pytest-asyncio>=1.1.0",
     "pytest-cov>=6.2.1",
-    "black>=24.0.0",
-    "isort>=5.13.0",
-    "flake8>=7.0.0",
-    "pre-commit>=3.6.0",
-    "mkdocs>=1.5.0",
-    "mkdocs-material>=9.0.0",
+    "pytest>=8.4.1",
+    "respx>=0.21.0",
 ]
 
 # Tool configurations

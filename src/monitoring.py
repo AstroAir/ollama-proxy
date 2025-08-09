@@ -194,9 +194,34 @@ class PerformanceStats:
 
 
 class MetricsCollector:
-    """Enhanced metrics collector with modern patterns and thread safety."""
+    """Enhanced metrics collector with modern patterns and thread safety.
+
+    This class provides comprehensive metrics collection and performance monitoring
+    for the ollama-proxy application. It tracks request statistics, performance
+    metrics, and provides health status information.
+
+    Features:
+    - Thread-safe metric recording and retrieval
+    - Automatic memory management with configurable limits
+    - Per-endpoint and global performance statistics
+    - Health status determination based on performance metrics
+    - Support for various metric types (counter, gauge, histogram, summary)
+
+    Attributes:
+        max_metrics: Maximum number of metric points to retain in memory.
+
+    Example:
+        >>> collector = MetricsCollector(max_metrics=5000)
+        >>> collector.record_metric("requests_total", 1, {"endpoint": "/api/chat"})
+        >>> stats = collector.get_endpoint_stats()
+    """
 
     def __init__(self, max_metrics: int = 10000):
+        """Initialize the metrics collector with specified limits.
+
+        Args:
+            max_metrics: Maximum number of metric points to store before cleanup.
+        """
         self.max_metrics = max_metrics
         self._metrics: List[MetricPoint] = []
         self._stats_by_endpoint: Dict[str, PerformanceStats] = defaultdict(
@@ -347,7 +372,18 @@ _metrics_collector: Optional[MetricsCollector] = None
 
 
 def get_metrics_collector() -> MetricsCollector:
-    """Get or create global metrics collector instance."""
+    """Get or create the global metrics collector instance.
+
+    This function implements a singleton pattern for the metrics collector,
+    ensuring only one instance exists throughout the application lifecycle.
+
+    Returns:
+        MetricsCollector: The global metrics collector instance.
+
+    Example:
+        >>> collector = get_metrics_collector()
+        >>> collector.record_metric("custom_metric", 42.0)
+    """
     global _metrics_collector
     if _metrics_collector is None:
         _metrics_collector = MetricsCollector()
@@ -356,7 +392,24 @@ def get_metrics_collector() -> MetricsCollector:
 
 @asynccontextmanager
 async def track_request(endpoint: str, labels: Optional[Labels] = None):
-    """Async context manager for tracking request performance."""
+    """Async context manager for automatic request performance tracking.
+
+    This context manager automatically measures request duration and records
+    success/failure statistics. It's designed to wrap API endpoint handlers
+    for comprehensive monitoring.
+
+    Args:
+        endpoint: The endpoint identifier (e.g., "/api/chat").
+        labels: Optional additional labels for the metrics.
+
+    Yields:
+        None: Control is yielded to the wrapped code block.
+
+    Example:
+        >>> async with track_request("/api/chat", {"model": "gpt-4"}):
+        >>>     response = await process_chat_request()
+        >>>     return response
+    """
     collector = get_metrics_collector()
     start_time = time.time()
     success = False
@@ -385,6 +438,20 @@ def record_metric(
     labels: Optional[Labels] = None,
     metric_type: MetricType = MetricType.GAUGE,
 ) -> None:
-    """Convenience function to record a metric."""
+    """Convenience function to record a metric using the global collector.
+
+    This is a simplified interface for recording metrics without needing
+    to directly access the metrics collector instance.
+
+    Args:
+        name: The metric name (e.g., "requests_total").
+        value: The metric value.
+        labels: Optional labels for categorizing the metric.
+        metric_type: The type of metric being recorded.
+
+    Example:
+        >>> record_metric("active_connections", 15, {"server": "proxy-1"})
+        >>> record_metric("request_duration_ms", 250.5, metric_type=MetricType.HISTOGRAM)
+    """
     collector = get_metrics_collector()
     collector.record_metric(name, value, labels, metric_type)
