@@ -7,6 +7,7 @@ across all provider implementations.
 
 from __future__ import annotations
 
+import asyncio
 import time
 import uuid
 from abc import ABC, abstractmethod
@@ -30,6 +31,8 @@ class ProviderType(StrEnum):
     ANTHROPIC = "anthropic"
     GOOGLE = "google"
     AZURE = "azure"
+    AWS_BEDROCK = "aws_bedrock"
+    OLLAMA = "ollama"
     COHERE = "cohere"
     HUGGINGFACE = "huggingface"
 
@@ -64,7 +67,8 @@ class ProviderConfig:
 
     def __post_init__(self):
         """Validate configuration after initialization."""
-        if not self.api_key.strip():
+        # Allow empty API key for Ollama provider (it typically doesn't require one)
+        if not self.api_key.strip() and self.provider_type != ProviderType.OLLAMA:
             raise ValueError(f"API key cannot be empty for {self.provider_type}")
         if not self.base_url.strip():
             raise ValueError(f"Base URL cannot be empty for {self.provider_type}")
@@ -90,13 +94,18 @@ class ProviderMetrics:
     request_size: int = 0
     response_size: int = 0
 
-    def mark_complete(self, status_code: Optional[int] = None, error: Optional[str] = None) -> None:
+    def mark_complete(self, status_code: Optional[int] = None, error: Optional[str] = None, response_time: Optional[float] = None) -> None:
         """Mark request as complete."""
-        self.end_time = time.time()
+        self.end_time = response_time or time.time()
         if status_code is not None:
             self.status_code = status_code
         if error is not None:
             self.error = error
+
+    def mark_error(self, error: str, response_time: Optional[float] = None) -> None:
+        """Mark request as failed with error."""
+        self.end_time = response_time or time.time()
+        self.error = error
 
     def increment_retry(self) -> None:
         """Increment retry counter."""
@@ -233,6 +242,8 @@ class AIProvider(ABC):
         self._client: Optional[httpx.AsyncClient] = None
         self._request_count = 0
         self._error_count = 0
+        self._semaphore = asyncio.Semaphore(config.max_concurrent_requests)
+        self._rate_limiter = asyncio.Semaphore(100)  # Default rate limit
 
     @property
     def provider_type(self) -> ProviderType:
@@ -290,6 +301,37 @@ class AIProvider(ABC):
         if self._client:
             await self._client.aclose()
             self._client = None
+
+    async def _make_request(
+        self,
+        method: str,
+        url: str,
+        **kwargs: Any,
+    ) -> httpx.Response:
+        """Make a rate-limited HTTP request."""
+        async with self._semaphore:  # Limit concurrent requests
+            async with self._rate_limiter:  # Rate limiting
+                client = await self.get_client()
+
+                try:
+                    response = await client.request(method, url, **kwargs)
+                    self._request_count += 1
+                    response.raise_for_status()
+                    return response
+                except Exception as e:
+                    self._error_count += 1
+                    logger.error(
+                        "HTTP request failed",
+                        method=method,
+                        url=url,
+                        error=str(e),
+                        provider=self.provider_type.value,
+                    )
+                    raise
+
+    def _get_current_time(self) -> float:
+        """Get current timestamp."""
+        return time.time()
 
     def get_headers(self, extra_headers: Optional[Dict[str, str]] = None) -> Dict[str, str]:
         """Get headers for API requests."""

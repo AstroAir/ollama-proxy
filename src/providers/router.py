@@ -9,8 +9,9 @@ from __future__ import annotations
 
 import asyncio
 import random
+import re
 import time
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 import structlog
 
@@ -45,6 +46,65 @@ class ProviderRouter:
 
         # Lock for thread safety
         self._lock = asyncio.Lock()
+
+        # Model-based routing rules
+        self._model_routing_rules = self._initialize_model_routing_rules()
+
+    def _initialize_model_routing_rules(self) -> List[Tuple[str, ProviderType]]:
+        """Initialize model-based routing rules.
+
+        Returns a list of (pattern, provider_type) tuples in order of precedence.
+        More specific patterns should come first.
+        """
+        return [
+            # Azure OpenAI models (most specific - must come before OpenAI patterns)
+            (r".*@.*\.openai\.azure\.com", ProviderType.AZURE),
+
+            # AWS Bedrock models (specific model IDs)
+            (r"anthropic\.claude.*", ProviderType.AWS_BEDROCK),
+            (r"amazon\.titan.*", ProviderType.AWS_BEDROCK),
+            (r"meta\.llama.*", ProviderType.AWS_BEDROCK),
+
+            # OpenAI models (after Azure to avoid conflicts)
+            (r"gpt-4.*", ProviderType.OPENAI),
+            (r"gpt-3\.5.*", ProviderType.OPENAI),
+            (r"text-davinci.*", ProviderType.OPENAI),
+            (r"text-embedding-ada.*", ProviderType.OPENAI),
+
+            # Anthropic models
+            (r"claude-3.*", ProviderType.ANTHROPIC),
+            (r"claude-2.*", ProviderType.ANTHROPIC),
+            (r"claude-instant.*", ProviderType.ANTHROPIC),
+
+            # Google models
+            (r"gemini.*", ProviderType.GOOGLE),
+            (r"palm.*", ProviderType.GOOGLE),
+            (r"bison.*", ProviderType.GOOGLE),
+
+            # Local Ollama models
+            (r"llama.*", ProviderType.OLLAMA),
+            (r"mistral.*", ProviderType.OLLAMA),
+            (r"codellama.*", ProviderType.OLLAMA),
+            (r"vicuna.*", ProviderType.OLLAMA),
+            (r"alpaca.*", ProviderType.OLLAMA),
+        ]
+
+    def get_provider_for_model(self, model: str) -> Optional[ProviderType]:
+        """Get the preferred provider for a specific model."""
+        if not model:
+            return None
+
+        for pattern, provider_type in self._model_routing_rules:
+            if re.match(pattern, model, re.IGNORECASE):
+                logger.debug(
+                    "Model matched routing rule",
+                    model=model,
+                    pattern=pattern,
+                    provider=provider_type.value,
+                )
+                return provider_type
+
+        return None
 
     async def route_request(
         self,
@@ -224,6 +284,18 @@ class ProviderRouter:
         if len(available_providers) == 1:
             return available_providers[0]
 
+        # First, try model-based routing if model is specified
+        if model:
+            model_provider = self.get_provider_for_model(model)
+            if model_provider and model_provider in available_providers:
+                logger.debug(
+                    "Selected provider based on model routing",
+                    model=model,
+                    provider=model_provider.value,
+                )
+                return model_provider
+
+        # Fall back to configured routing strategy
         if self.routing_strategy == RoutingStrategy.ROUND_ROBIN:
             return self._select_round_robin(available_providers)
         elif self.routing_strategy == RoutingStrategy.LEAST_LOADED:
@@ -232,6 +304,8 @@ class ProviderRouter:
             return self._select_fastest_response(available_providers)
         elif self.routing_strategy == RoutingStrategy.CAPABILITY_BASED:
             return self._select_capability_based(available_providers, capability, model)
+        elif self.routing_strategy == RoutingStrategy.COST_OPTIMIZED:
+            return self._select_cost_optimized(available_providers)
         else:
             # Default to first available
             return available_providers[0]
@@ -292,6 +366,27 @@ class ProviderRouter:
                 break
 
         return selected
+
+    def _select_cost_optimized(self, providers: List[ProviderType]) -> ProviderType:
+        """Select provider based on cost optimization."""
+        # Simple cost-based selection (in practice, you'd have cost data)
+        cost_priority = {
+            ProviderType.OLLAMA: 1,  # Local is cheapest
+            ProviderType.OPENROUTER: 2,  # Often competitive pricing
+            ProviderType.GOOGLE: 3,
+            ProviderType.ANTHROPIC: 4,
+            ProviderType.OPENAI: 5,
+            ProviderType.AZURE: 6,
+            ProviderType.AWS_BEDROCK: 7,
+        }
+
+        # Sort providers by cost priority
+        sorted_providers = sorted(
+            providers,
+            key=lambda p: cost_priority.get(p, 999)
+        )
+
+        return sorted_providers[0]
 
     def _select_capability_based(
         self,

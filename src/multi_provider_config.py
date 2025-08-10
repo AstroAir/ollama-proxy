@@ -154,6 +154,32 @@ class MultiProviderSettings(BaseSettings):
     google_timeout: int = Field(default=300, description="Google timeout")
     google_priority: int = Field(default=4, description="Google priority")
 
+    # Azure OpenAI provider settings
+    azure_enabled: bool = Field(default=False, description="Enable Azure OpenAI provider")
+    azure_api_key: str = Field(default="", description="Azure OpenAI API key")
+    azure_base_url: str = Field(default="", description="Azure OpenAI endpoint URL")
+    azure_timeout: int = Field(default=300, description="Azure timeout")
+    azure_priority: int = Field(default=5, description="Azure priority")
+
+    # AWS Bedrock provider settings
+    aws_bedrock_enabled: bool = Field(default=False, description="Enable AWS Bedrock provider")
+    aws_bedrock_access_key: str = Field(default="", description="AWS Access Key ID")
+    aws_bedrock_secret_key: str = Field(default="", description="AWS Secret Access Key")
+    aws_bedrock_region: str = Field(default="us-east-1", description="AWS region")
+    aws_bedrock_session_token: str = Field(default="", description="AWS session token (optional)")
+    aws_bedrock_timeout: int = Field(default=300, description="AWS Bedrock timeout")
+    aws_bedrock_priority: int = Field(default=6, description="AWS Bedrock priority")
+
+    # Local Ollama provider settings
+    ollama_enabled: bool = Field(default=False, description="Enable local Ollama provider")
+    ollama_api_key: str = Field(default="", description="Ollama API key (optional)")
+    ollama_base_url: str = Field(
+        default="http://localhost:11434",
+        description="Ollama server URL"
+    )
+    ollama_timeout: int = Field(default=300, description="Ollama timeout")
+    ollama_priority: int = Field(default=7, description="Ollama priority")
+
     # Model filtering and routing
     models_filter_path: Optional[str] = Field(
         default="models-filter.txt",
@@ -202,6 +228,41 @@ class MultiProviderSettings(BaseSettings):
                 base_url=self.google_base_url,
                 timeout=self.google_timeout,
                 priority=self.google_priority,
+            )
+
+        if self.azure_enabled and self.azure_api_key and self.azure_base_url:
+            providers[ProviderType.AZURE] = ProviderSettings(
+                enabled=True,
+                api_key=self.azure_api_key,
+                base_url=self.azure_base_url,
+                timeout=self.azure_timeout,
+                priority=self.azure_priority,
+            )
+
+        if self.aws_bedrock_enabled and self.aws_bedrock_access_key and self.aws_bedrock_secret_key:
+            custom_headers = {
+                "aws_secret_access_key": self.aws_bedrock_secret_key,
+                "aws_region": self.aws_bedrock_region,
+            }
+            if self.aws_bedrock_session_token:
+                custom_headers["aws_session_token"] = self.aws_bedrock_session_token
+
+            providers[ProviderType.AWS_BEDROCK] = ProviderSettings(
+                enabled=True,
+                api_key=self.aws_bedrock_access_key,
+                base_url=f"https://bedrock-runtime.{self.aws_bedrock_region}.amazonaws.com",
+                timeout=self.aws_bedrock_timeout,
+                priority=self.aws_bedrock_priority,
+                custom_headers=custom_headers,
+            )
+
+        if self.ollama_enabled:
+            providers[ProviderType.OLLAMA] = ProviderSettings(
+                enabled=True,
+                api_key=self.ollama_api_key,
+                base_url=self.ollama_base_url,
+                timeout=self.ollama_timeout,
+                priority=self.ollama_priority,
             )
 
         return providers

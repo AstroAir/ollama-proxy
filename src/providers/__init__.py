@@ -22,6 +22,9 @@ from .registry import ProviderRegistry, register_provider
 from .openai_provider import OpenAIProvider
 from .anthropic_provider import AnthropicProvider
 from .google_provider import GoogleProvider
+from .azure_provider import AzureProvider
+from .aws_bedrock_provider import AWSBedrockProvider
+from .ollama_provider import OllamaProvider
 
 # Import initialization utilities
 from .init_providers import (
@@ -49,6 +52,9 @@ __all__ = [
     "OpenAIProvider",
     "AnthropicProvider",
     "GoogleProvider",
+    "AzureProvider",
+    "AWSBedrockProvider",
+    "OllamaProvider",
     # Initialization utilities
     "register_all_providers",
     "get_provider_capabilities",

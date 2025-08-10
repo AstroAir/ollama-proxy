@@ -101,8 +101,12 @@ class TestRequestMetadata:
 
     def test_is_expired(self):
         """Test expiration check."""
+        import time
         metadata = RequestMetadata()
         assert not metadata.is_expired(max_age_seconds=300.0)
+
+        # Add a small delay to ensure age > 0
+        time.sleep(0.001)
         assert metadata.is_expired(max_age_seconds=0.0)
 
     def test_to_dict(self):

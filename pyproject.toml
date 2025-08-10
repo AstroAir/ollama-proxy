@@ -63,6 +63,9 @@ ollama-proxy-cli = "src.main:cli_main"
 url = "https://mirrors.aliyun.com/pypi/simple/"
 default = true
 
+[tool.uv]
+python-install-mirror = "https://registry.npmmirror.com/-/binary/python-build-standalone"
+
 [dependency-groups]
 dev = [
     "black>=24.0.0",

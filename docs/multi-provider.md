@@ -6,12 +6,14 @@ The Ollama Proxy includes advanced multi-provider support, allowing you to use m
 
 The multi-provider system supports:
 
-- **Multiple AI Providers**: OpenAI, Anthropic Claude, Google Gemini, and OpenRouter
-- **Intelligent Routing**: Capability-based, round-robin, least-loaded, and fastest-response strategies
-- **Fallback Mechanisms**: Automatic failover to alternative providers
+- **Multiple AI Providers**: OpenAI, Anthropic Claude, Google Gemini, OpenRouter, Azure OpenAI, AWS Bedrock, and local Ollama
+- **Intelligent Routing**: Model-based routing, capability-based, round-robin, least-loaded, fastest-response, and cost-optimized strategies
+- **Fallback Mechanisms**: Automatic failover to alternative providers with configurable strategies
 - **Enhanced Error Handling**: Circuit breakers, retry logic, and comprehensive error recovery
-- **Health Monitoring**: Real-time health checks and provider status monitoring
+- **Health Monitoring**: Real-time health checks, provider status monitoring, and detailed metrics collection
 - **Request/Response Transformation**: Seamless format conversion between Ollama and provider APIs
+- **Scalability Features**: Connection pooling, request queuing, rate limiting, and async optimization
+- **Advanced Configuration**: Flexible provider settings, routing rules, and environment-specific configurations
 
 ## Configuration
 
@@ -59,6 +61,27 @@ GOOGLE_API_KEY=your_google_key
 GOOGLE_BASE_URL=https://generativelanguage.googleapis.com/v1beta
 GOOGLE_TIMEOUT=300
 GOOGLE_PRIORITY=4
+
+# Azure OpenAI
+AZURE_ENABLED=true
+AZURE_API_KEY=your_azure_key
+AZURE_BASE_URL=https://your-resource.openai.azure.com
+AZURE_TIMEOUT=300
+AZURE_PRIORITY=5
+
+# AWS Bedrock
+AWS_BEDROCK_ENABLED=true
+AWS_BEDROCK_ACCESS_KEY=your_aws_access_key
+AWS_BEDROCK_SECRET_KEY=your_aws_secret_key
+AWS_BEDROCK_REGION=us-east-1
+AWS_BEDROCK_TIMEOUT=300
+AWS_BEDROCK_PRIORITY=6
+
+# Local Ollama
+OLLAMA_ENABLED=true
+OLLAMA_BASE_URL=http://localhost:11434
+OLLAMA_TIMEOUT=300
+OLLAMA_PRIORITY=7
 ```
 
 ### Configuration File
@@ -156,7 +179,18 @@ curl http://localhost:11434/health/providers/openai
 
 ## Routing Strategies
 
-### 1. Capability-Based Routing (Default)
+### 1. Model-Based Routing (Priority)
+
+Automatically routes requests based on model names and patterns:
+
+- **OpenAI Models**: `gpt-4*`, `gpt-3.5*`, `text-embedding-ada*` → OpenAI provider
+- **Anthropic Models**: `claude-3*`, `claude-2*`, `claude-instant*` → Anthropic provider
+- **Google Models**: `gemini*`, `palm*`, `bison*` → Google provider
+- **Azure Models**: `*@*.openai.azure.com` → Azure OpenAI provider
+- **AWS Bedrock Models**: `anthropic.claude*`, `amazon.titan*`, `meta.llama*` → AWS Bedrock provider
+- **Local Models**: `llama*`, `mistral*`, `codellama*` → Ollama provider
+
+### 2. Capability-Based Routing (Default)
 
 Routes requests based on provider capabilities and model preferences:
 
@@ -165,7 +199,15 @@ Routes requests based on provider capabilities and model preferences:
 - Considers model availability and provider specializations
 - Falls back to alternative providers if the primary choice fails
 
-### 2. Round-Robin Routing
+### 3. Cost-Optimized Routing
+
+Routes requests to minimize costs:
+
+- **Priority Order**: Ollama (local) → OpenRouter → Google → Anthropic → OpenAI → Azure → AWS Bedrock
+- Considers provider pricing and cost per token
+- Balances cost with performance requirements
+
+### 4. Round-Robin Routing
 
 Distributes requests evenly across all available providers:
 
@@ -173,7 +215,7 @@ Distributes requests evenly across all available providers:
 - Good for balanced workloads
 - Ensures all providers are utilized equally
 
-### 3. Least-Loaded Routing
+### 5. Least-Loaded Routing
 
 Routes to the provider with the lowest current load:
 
@@ -247,6 +289,58 @@ Each provider has an independent circuit breaker that:
 - Automatically disables failing providers
 - Gradually re-enables providers when they recover
 - Prevents resource waste on failing providers
+
+## Scalability Features
+
+### Connection Pooling
+
+Advanced HTTP connection management for optimal performance:
+
+- **Per-Provider Connection Pools**: Each provider maintains its own connection pool
+- **Configurable Pool Sizes**: Adjust based on provider limits and requirements
+- **Keep-Alive Connections**: Reuse connections to reduce latency
+- **Connection Limits**: Prevent resource exhaustion with configurable limits
+
+```bash
+# Configure connection pooling
+OPENAI_MAX_CONCURRENT_REQUESTS=50
+ANTHROPIC_MAX_CONCURRENT_REQUESTS=30
+GOOGLE_MAX_CONCURRENT_REQUESTS=40
+```
+
+### Request Queuing
+
+Intelligent request queuing for high-load scenarios:
+
+- **Priority-Based Queuing**: Critical requests processed first
+- **Queue Size Limits**: Prevent memory exhaustion
+- **Request Timeouts**: Automatic cleanup of expired requests
+- **Concurrency Control**: Limit concurrent requests per provider
+
+```bash
+# Configure request queuing
+MAX_QUEUE_SIZE=1000
+MAX_CONCURRENT_REQUESTS=100
+ENABLE_PRIORITIZATION=true
+```
+
+### Rate Limiting
+
+Built-in rate limiting to respect provider limits:
+
+- **Per-Provider Rate Limits**: Respect individual provider constraints
+- **Adaptive Rate Limiting**: Automatically adjust based on provider responses
+- **Queue Management**: Queue requests when rate limits are hit
+- **Backoff Strategies**: Exponential backoff for rate-limited requests
+
+### Async Optimization
+
+Fully asynchronous architecture for maximum throughput:
+
+- **Non-Blocking I/O**: All network operations are asynchronous
+- **Concurrent Request Processing**: Handle multiple requests simultaneously
+- **Resource Efficiency**: Minimal memory and CPU overhead
+- **Graceful Degradation**: Maintain performance under high load
 
 ## Error Handling
 

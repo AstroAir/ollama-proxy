@@ -1,19 +1,22 @@
 # Ollama Proxy
 
-A modern, high-performance proxy server that translates Ollama API calls to OpenRouter, enabling seamless access to a wide variety of AI models through the familiar Ollama interface.
+A modern, high-performance multi-provider proxy server that translates Ollama API calls to multiple AI providers, enabling seamless access to a wide variety of AI models through the familiar Ollama interface.
 
 ## Overview
 
-Ollama Proxy acts as a bridge between any Ollama-compatible client and the OpenRouter API. This allows you to use your favorite tools and applications that support Ollama with the extensive range of models offered by OpenRouter, without needing to modify your client-side code.
+Ollama Proxy acts as a bridge between any Ollama-compatible client and multiple AI providers including OpenRouter, OpenAI, Anthropic Claude, Google Gemini, Azure OpenAI, AWS Bedrock, and local Ollama instances. This allows you to use your favorite tools and applications that support Ollama with the extensive range of models offered by these providers, without needing to modify your client-side code.
 
 ## Features
 
-- **🔄 Seamless Translation**: Converts Ollama API calls to the OpenRouter format.
-- **🚀 High Performance**: Built with modern Python and `asyncio` for speed.
-- **⚙️ Flexible Configuration**: Configure via environment variables, `.env` files, or CLI arguments.
-- **🔍 Model Filtering**: Control which OpenRouter models are exposed.
-- **📊 Structured Logging**: JSON logs for better observability.
-- **🐳 Docker Support**: Easy to deploy with Docker and Docker Compose.
+- **🔄 Multi-Provider Support**: Seamlessly connects to OpenRouter, OpenAI, Anthropic, Google, Azure OpenAI, AWS Bedrock, and local Ollama
+- **🧠 Intelligent Routing**: Model-based routing, load balancing, and automatic failover between providers
+- **🚀 High Performance**: Built with modern Python and `asyncio` for maximum throughput and scalability
+- **⚙️ Flexible Configuration**: Configure via environment variables, `.env` files, or CLI arguments
+- **🔍 Advanced Filtering**: Control which models are exposed from each provider
+- **📊 Comprehensive Monitoring**: Detailed metrics, health checks, and performance tracking
+- **🔧 Scalability Features**: Connection pooling, request queuing, rate limiting, and async optimization
+- **🛡️ Robust Error Handling**: Circuit breakers, retry logic, and graceful degradation
+- **🐳 Docker Support**: Easy to deploy with Docker and Docker Compose
 
 ## Getting Started
 

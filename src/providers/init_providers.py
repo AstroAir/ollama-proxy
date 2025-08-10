@@ -9,8 +9,11 @@ from __future__ import annotations
 import structlog
 
 from .anthropic_provider import AnthropicProvider
+from .azure_provider import AzureProvider
+from .aws_bedrock_provider import AWSBedrockProvider
 from .base import ProviderCapability, ProviderType
 from .google_provider import GoogleProvider
+from .ollama_provider import OllamaProvider
 from .openai_provider import OpenAIProvider
 from .openrouter_provider import OpenRouterProvider
 from .registry import register_provider
@@ -71,6 +74,44 @@ def register_all_providers() -> None:
         ])
     )
 
+    # Register Azure OpenAI provider
+    register_provider(
+        ProviderType.AZURE,
+        AzureProvider,
+        frozenset([
+            ProviderCapability.CHAT_COMPLETION,
+            ProviderCapability.TEXT_COMPLETION,
+            ProviderCapability.EMBEDDINGS,
+            ProviderCapability.STREAMING,
+            ProviderCapability.FUNCTION_CALLING,
+            ProviderCapability.VISION,
+        ])
+    )
+
+    # Register AWS Bedrock provider
+    register_provider(
+        ProviderType.AWS_BEDROCK,
+        AWSBedrockProvider,
+        frozenset([
+            ProviderCapability.CHAT_COMPLETION,
+            ProviderCapability.TEXT_COMPLETION,
+            ProviderCapability.EMBEDDINGS,
+            ProviderCapability.STREAMING,
+        ])
+    )
+
+    # Register local Ollama provider
+    register_provider(
+        ProviderType.OLLAMA,
+        OllamaProvider,
+        frozenset([
+            ProviderCapability.CHAT_COMPLETION,
+            ProviderCapability.TEXT_COMPLETION,
+            ProviderCapability.EMBEDDINGS,
+            ProviderCapability.STREAMING,
+        ])
+    )
+
     logger.info(
         "Registered all AI providers",
         providers=[
@@ -78,6 +119,9 @@ def register_all_providers() -> None:
             ProviderType.OPENAI.value,
             ProviderType.ANTHROPIC.value,
             ProviderType.GOOGLE.value,
+            ProviderType.AZURE.value,
+            ProviderType.AWS_BEDROCK.value,
+            ProviderType.OLLAMA.value,
         ]
     )
 
