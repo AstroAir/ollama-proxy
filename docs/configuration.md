@@ -2,6 +2,8 @@
 
 The Ollama Proxy is highly configurable, allowing you to tailor its behavior to your specific needs. You can configure the application through environment variables, a `.env` file, or command-line arguments.
 
+The proxy supports both single-provider mode (OpenRouter only) and multi-provider mode (OpenRouter, OpenAI, Anthropic, Google Gemini) with intelligent routing and fallback mechanisms.
+
 ## Configuration Methods
 
 ### 1. Environment Variables
@@ -52,6 +54,48 @@ ollama-proxy --port 8080 --log-level DEBUG
 | `MAX_CONCURRENT_REQUESTS` | `100`                          | The maximum number of concurrent requests the proxy will handle.                                            |
 | `DEBUG`                   | `false`                        | Set to `true` to enable debug mode, which provides more verbose logging.                                    |
 | `RELOAD`                  | `false`                        | Set to `true` to enable auto-reloading for development. The server will restart when code changes are detected. |
+| `ENVIRONMENT`             | `development`                  | Application environment (`development`, `staging`, `production`).                                            |
+
+### Multi-Provider Configuration
+
+| Variable                  | Default                        | Description                                                                                                 |
+| ------------------------- | ------------------------------ | ----------------------------------------------------------------------------------------------------------- |
+| `ROUTING_STRATEGY`        | `capability_based`             | Routing strategy: `capability_based`, `round_robin`, `least_loaded`, `fastest_response`.                   |
+| `FALLBACK_STRATEGY`       | `next_available`               | Fallback strategy: `none`, `next_available`, `retry_same`, `best_alternative`.                             |
+| `ENABLE_LOAD_BALANCING`   | `true`                         | Enable load balancing across providers.                                                                    |
+| `HEALTH_CHECK_INTERVAL`   | `60`                           | Health check interval in seconds.                                                                          |
+
+### Provider-Specific Configuration
+
+#### OpenAI Provider
+
+| Variable                  | Default                        | Description                                                                                                 |
+| ------------------------- | ------------------------------ | ----------------------------------------------------------------------------------------------------------- |
+| `OPENAI_ENABLED`          | `false`                        | Enable OpenAI provider.                                                                                    |
+| `OPENAI_API_KEY`          | -                              | OpenAI API key.                                                                                            |
+| `OPENAI_BASE_URL`         | `https://api.openai.com/v1`   | OpenAI API base URL.                                                                                       |
+| `OPENAI_TIMEOUT`          | `300`                          | OpenAI request timeout in seconds.                                                                        |
+| `OPENAI_PRIORITY`         | `2`                            | Provider priority (lower numbers = higher priority).                                                      |
+
+#### Anthropic Provider
+
+| Variable                  | Default                        | Description                                                                                                 |
+| ------------------------- | ------------------------------ | ----------------------------------------------------------------------------------------------------------- |
+| `ANTHROPIC_ENABLED`       | `false`                        | Enable Anthropic provider.                                                                                |
+| `ANTHROPIC_API_KEY`       | -                              | Anthropic API key.                                                                                         |
+| `ANTHROPIC_BASE_URL`      | `https://api.anthropic.com`    | Anthropic API base URL.                                                                                    |
+| `ANTHROPIC_TIMEOUT`       | `300`                          | Anthropic request timeout in seconds.                                                                     |
+| `ANTHROPIC_PRIORITY`      | `3`                            | Provider priority (lower numbers = higher priority).                                                      |
+
+#### Google Gemini Provider
+
+| Variable                  | Default                        | Description                                                                                                 |
+| ------------------------- | ------------------------------ | ----------------------------------------------------------------------------------------------------------- |
+| `GOOGLE_ENABLED`          | `false`                        | Enable Google Gemini provider.                                                                            |
+| `GOOGLE_API_KEY`          | -                              | Google API key.                                                                                            |
+| `GOOGLE_BASE_URL`         | `https://generativelanguage.googleapis.com/v1beta` | Google Gemini API base URL.                                                    |
+| `GOOGLE_TIMEOUT`          | `300`                          | Google request timeout in seconds.                                                                        |
+| `GOOGLE_PRIORITY`         | `4`                            | Provider priority (lower numbers = higher priority).                                                      |
 
 ### Command-Line Options
 

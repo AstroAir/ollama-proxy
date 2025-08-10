@@ -216,7 +216,7 @@ kubectl create secret generic ollama-proxy-secrets \
 ### Monitoring and Observability
 
 - **Health Checks**: Use the `/health` endpoint for load balancer health checks.
-- **Metrics**: The proxy includes a `/metrics` endpoint that can be integrated with monitoring systems like Prometheus to track performance and errors. For more details, see the [Architecture Guide](ARCHITECTURE.md#monitoring-and-observability).
+- **Metrics**: The proxy includes a `/metrics` endpoint that can be integrated with monitoring systems like Prometheus to track performance and errors. For more details, see the [Architecture Guide](architecture.md#monitoring-and-observability).
 - **Logging**: In a production environment, configure the `LOG_LEVEL` to `INFO` or `WARNING` and ship your logs to a centralized logging platform like ELK stack, Datadog, or CloudWatch for analysis and alerting.
 - **Alerting**: Set up alerts for high error rates, slow response times, or service downtime.
 

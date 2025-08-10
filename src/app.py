@@ -1,184 +1,130 @@
-"""Main application factory and dependency injection setup."""
+"""Main application factory with multi-provider support.
+
+This module creates the main FastAPI application with support for multiple
+AI providers, enhanced error handling, health checks, and monitoring.
+"""
 
 from __future__ import annotations
 
-import logging
+import asyncio
 from contextlib import asynccontextmanager
-from typing import AsyncIterator
+from typing import Any, Dict, Optional
 
 import structlog
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, PlainTextResponse
 
-from .api import router
-from .config import AppState, Settings, get_settings
-from .exceptions import NetworkError, OpenRouterError, ProxyError
-from .openrouter import OpenRouterClient, OpenRouterResponse
-from .utils import build_ollama_to_openrouter_map, build_openrouter_to_ollama_map
+from .exceptions import ProxyError
+from .health import router as health_router
+from .multi_provider_api import MultiProviderAPI
+from .multi_provider_config import MultiProviderSettings
+from .providers.base import ProviderType
+from .providers.factory import get_factory
 
-
-def setup_logging(settings: Settings) -> None:
-    """Configure structured logging for the application.
-
-    Sets up both standard library logging and structlog with appropriate
-    processors for structured JSON logging. This configuration ensures
-    consistent log formatting across the application.
-
-    Args:
-        settings: Application settings containing log level and format configuration.
-
-    Note:
-        This function configures logging globally and should only be called once
-        during application startup.
-
-    Example:
-        >>> settings = get_settings()
-        >>> setup_logging(settings)
-    """
-    logging.basicConfig(
-        level=getattr(logging, settings.log_level),
-        format=settings.log_format,
-    )
-
-    # Configure structlog with comprehensive processors for production logging
-    structlog.configure(
-        processors=[
-            structlog.stdlib.filter_by_level,
-            structlog.stdlib.add_logger_name,
-            structlog.stdlib.add_log_level,
-            structlog.stdlib.PositionalArgumentsFormatter(),
-            structlog.processors.TimeStamper(fmt="iso"),
-            structlog.processors.StackInfoRenderer(),
-            structlog.processors.format_exc_info,
-            structlog.processors.UnicodeDecoder(),
-            structlog.processors.JSONRenderer(),
-        ],
-        context_class=dict,
-        logger_factory=structlog.stdlib.LoggerFactory(),
-        wrapper_class=structlog.stdlib.BoundLogger,
-        cache_logger_on_first_use=True,
-    )
+logger = structlog.get_logger(__name__)
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-    """Manage the application lifespan with proper resource initialization and cleanup.
+async def lifespan(app: FastAPI):
+    """Application lifespan manager."""
+    # Startup
+    logger.info("Starting ollama-proxy with multi-provider support")
 
-    This async context manager handles the complete lifecycle of the application,
-    including:
-    - Setting up logging configuration
-    - Initializing the OpenRouter client
-    - Fetching and caching model information
-    - Building model name mappings
-    - Graceful cleanup on shutdown
+    # Initialize providers
+    settings = app.state.settings
+    multi_api = app.state.multi_api
+    await multi_api.initialize()
 
-    Args:
-        app: The FastAPI application instance.
+    # Start health check background task
+    health_check_task = asyncio.create_task(periodic_health_check(settings))
+    app.state.health_check_task = health_check_task
 
-    Yields:
-        None: Control is yielded back to FastAPI during normal operation.
+    logger.info("Ollama-proxy startup complete")
 
-    Raises:
-        OpenRouterError: If OpenRouter API initialization fails.
-        NetworkError: If network connectivity issues prevent initialization.
-        Exception: For any other initialization failures.
+    yield
 
-    Example:
-        This function is automatically called by FastAPI when used as a lifespan handler:
-        >>> app = FastAPI(lifespan=lifespan)
-    """
-    settings = get_settings()
-    setup_logging(settings)
+    # Shutdown
+    logger.info("Shutting down ollama-proxy")
 
-    logger = structlog.get_logger(__name__)
-    logger.info("Starting ollama-proxy application", version="0.1.0")
+    # Cancel health check task
+    if hasattr(app.state, 'health_check_task'):
+        app.state.health_check_task.cancel()
+        try:
+            await app.state.health_check_task
+        except asyncio.CancelledError:
+            pass
 
-    # Initialize OpenRouter client
-    openrouter_client = OpenRouterClient(settings)
+    # Close all provider connections
+    factory = get_factory()
+    await factory.close_all()
 
-    try:
-        # Fetch models and build mappings
-        logger.info("Fetching models from OpenRouter...")
-        model_response = await openrouter_client.fetch_models()
-        all_models = model_response.data.get("data", [])
-
-        # Build model mappings
-        ollama_to_openrouter_map = build_ollama_to_openrouter_map(all_models)
-        openrouter_to_ollama_map = build_openrouter_to_ollama_map(all_models)
-
-        # Initialize application state
-        app_state = AppState.create(settings)
-        app_state.update_models(
-            all_models, ollama_to_openrouter_map, openrouter_to_ollama_map
-        )
-        app_state.openrouter_client = openrouter_client
-
-        # Store state in app
-        app.state.app_state = app_state
-
-        logger.info(
-            "Application initialized successfully",
-            model_count=len(all_models),
-            mapping_count=len(ollama_to_openrouter_map),
-            filter_count=len(app_state.model_filter.models),
-        )
-
-        yield
-
-    except (OpenRouterError, NetworkError) as e:
-        logger.error(
-            "Failed to initialize OpenRouter client",
-            error=str(e),
-            error_type=type(e).__name__,
-        )
-        raise
-    except Exception as e:
-        logger.error(
-            "Failed to initialize application",
-            error=str(e),
-            error_type=type(e).__name__,
-        )
-        raise
-    finally:
-        # Cleanup
-        await openrouter_client.close()
-        logger.info("Application shutdown complete")
+    logger.info("Ollama-proxy shutdown complete")
 
 
-def create_app() -> FastAPI:
-    """Create and configure the FastAPI application with all necessary middleware and handlers.
+async def periodic_health_check(settings: MultiProviderSettings) -> None:
+    """Periodic health check for all providers."""
+    from .health import get_health_checker
 
-    This factory function creates a fully configured FastAPI application instance with:
-    - CORS middleware for cross-origin requests
-    - Request logging middleware for observability
-    - Global exception handlers for consistent error responses
-    - API route registration
-    - Application lifespan management
+    health_checker = get_health_checker()
 
-    Returns:
-        FastAPI: A fully configured FastAPI application instance ready to serve requests.
+    while True:
+        try:
+            await asyncio.sleep(settings.health_check_interval)
 
-    Example:
-        >>> app = create_app()
-        >>> # App is ready to be served with uvicorn
-        >>> uvicorn.run(app, host="0.0.0.0", port=8000)
-    """
+            # Perform health check
+            health_status = await health_checker.check_system_health()
+
+            providers = health_status.providers or {}
+            logger.debug(
+                "Periodic health check completed",
+                status=health_status.status,
+                healthy_providers=sum(
+                    1 for p in providers.values()
+                    if p.get("healthy", False)
+                ),
+                total_providers=len(providers),
+            )
+
+        except asyncio.CancelledError:
+            logger.info("Health check task cancelled")
+            break
+        except Exception as e:
+            logger.error(
+                "Error in periodic health check",
+                error=str(e),
+                error_type=type(e).__name__,
+            )
+
+
+def create_app(settings: Optional[MultiProviderSettings] = None) -> FastAPI:
+    """Create FastAPI application with multi-provider support."""
+    # Use default settings if none provided
+    if settings is None:
+        settings = MultiProviderSettings()
+
     app = FastAPI(
         title="Ollama Proxy",
-        description="A proxy server that translates Ollama API calls to OpenRouter",
-        version="0.1.0",
+        description="Multi-provider AI proxy with intelligent routing and fallback",
+        version="0.2.0",
         lifespan=lifespan,
     )
+
+    # Store settings and multi-provider API in app state
+    app.state.settings = settings
+    app.state.multi_api = MultiProviderAPI(settings)
 
     # Add CORS middleware
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],  # Configure appropriately for production
+        allow_origins=["*"],
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
     )
+
+    # Add health check routes
+    app.include_router(health_router)
 
     # Add request logging middleware
     @app.middleware("http")
@@ -233,20 +179,7 @@ def create_app() -> FastAPI:
             },
         )
 
-    @app.exception_handler(OpenRouterError)
-    async def openrouter_error_handler(request: Request, exc: OpenRouterError):
-        logger = structlog.get_logger(__name__)
-        logger.error(
-            "OpenRouter API error",
-            path=request.url.path,
-            status_code=exc.status_code,
-            message=str(exc),
-        )
 
-        return JSONResponse(
-            status_code=exc.status_code or 500,
-            content={"error": str(exc), "type": "openrouter_error"},
-        )
 
     @app.exception_handler(Exception)
     async def generic_error_handler(request: Request, exc: Exception):
@@ -261,11 +194,149 @@ def create_app() -> FastAPI:
                      "type": "internal_error"},
         )
 
-    # Include API routes
-    app.include_router(router)
+    # Basic compatibility routes
+    @app.get("/", response_class=PlainTextResponse)
+    async def root() -> str:
+        """Root endpoint for basic health check."""
+        return "Ollama is running"
+
+    @app.get("/api/version")
+    async def get_version() -> Dict[str, str]:
+        """Get API version information."""
+        return {"version": "0.2.0"}
+
+    # Multi-provider API endpoints
+    @app.get("/api/tags")
+    async def list_models() -> Dict[str, Any]:
+        """List all available models from all providers."""
+        multi_api = app.state.multi_api
+        return await multi_api.list_models()
+
+    @app.get("/api/tags/{provider_type}")
+    async def list_provider_models(provider_type: str) -> Dict[str, Any]:
+        """List models from a specific provider."""
+        try:
+            from .providers.base import ProviderType
+            provider_enum = ProviderType(provider_type.lower())
+        except ValueError:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid provider type: {provider_type}"
+            )
+
+        multi_api = app.state.multi_api
+        return await multi_api.list_models(provider_enum)
+
+    @app.post("/api/chat")
+    async def chat_completion(request: Request) -> Dict[str, Any]:
+        """Chat completion with multi-provider support."""
+        from .models import OllamaChatRequest
+
+        try:
+            body = await request.json()
+            chat_request = OllamaChatRequest(**body)
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"Invalid request: {e}")
+
+        # Check for provider preference in headers
+        preferred_provider = None
+        provider_header = request.headers.get("X-Provider")
+        if provider_header:
+            try:
+                preferred_provider = ProviderType(provider_header.lower())
+            except ValueError:
+                logger.warning(
+                    "Invalid provider specified in header",
+                    provider=provider_header,
+                )
+
+        multi_api = app.state.multi_api
+        return await multi_api.chat_completion(chat_request, preferred_provider)
+
+    @app.post("/api/generate")
+    async def generate_completion(request: Request) -> Dict[str, Any]:
+        """Text generation with multi-provider support."""
+        from .models import OllamaGenerateRequest
+
+        try:
+            body = await request.json()
+            generate_request = OllamaGenerateRequest(**body)
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"Invalid request: {e}")
+
+        # Check for provider preference in headers
+        preferred_provider = None
+        provider_header = request.headers.get("X-Provider")
+        if provider_header:
+            try:
+                preferred_provider = ProviderType(provider_header.lower())
+            except ValueError:
+                logger.warning(
+                    "Invalid provider specified in header",
+                    provider=provider_header,
+                )
+
+        multi_api = app.state.multi_api
+        return await multi_api.generate_completion(generate_request, preferred_provider)
+
+    @app.post("/api/embeddings")
+    async def create_embeddings(request: Request) -> Dict[str, Any]:
+        """Embeddings creation with multi-provider support."""
+        from .models import OllamaEmbeddingsRequest
+
+        try:
+            body = await request.json()
+            embeddings_request = OllamaEmbeddingsRequest(**body)
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"Invalid request: {e}")
+
+        # Check for provider preference in headers
+        preferred_provider = None
+        provider_header = request.headers.get("X-Provider")
+        if provider_header:
+            try:
+                preferred_provider = ProviderType(provider_header.lower())
+            except ValueError:
+                logger.warning(
+                    "Invalid provider specified in header",
+                    provider=provider_header,
+                )
+
+        multi_api = app.state.multi_api
+        return await multi_api.create_embeddings(embeddings_request, preferred_provider)
+
+    @app.get("/api/providers")
+    async def get_provider_info() -> Dict[str, Any]:
+        """Get information about all configured providers."""
+        multi_api = app.state.multi_api
+        return await multi_api.get_provider_stats()
+
+    @app.get("/api/providers/{provider_type}/stats")
+    async def get_provider_stats(provider_type: str) -> Dict[str, Any]:
+        """Get statistics for a specific provider."""
+        try:
+            provider_enum = ProviderType(provider_type.lower())
+        except ValueError:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid provider type: {provider_type}"
+            )
+
+        factory = get_factory()
+        provider = factory.get_provider(provider_enum)
+
+        if provider is None:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Provider {provider_type} not configured"
+            )
+
+        return {
+            "provider_type": provider_type,
+            "request_count": provider.request_count,
+            "error_count": provider.error_count,
+            "error_rate": provider.error_rate,
+            "capabilities": list(provider.capabilities),
+        }
 
     return app
-
-
-# Create the app instance
-app = create_app()

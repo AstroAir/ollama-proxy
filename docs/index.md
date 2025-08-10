@@ -31,7 +31,7 @@ Ollama Proxy acts as a bridge between any Ollama-compatible client and the OpenR
 
 ### Prerequisites
 
-- Python 3.11+
+- Python 3.12+
 - An [OpenRouter API key](https://openrouter.ai/keys)
 
 ### Installation {#installation}
@@ -68,12 +68,19 @@ Once the server is running, you can configure your Ollama client to point to `ht
 
 Explore our comprehensive documentation to learn more about configuring and using the Ollama Proxy:
 
+### Core Documentation
+
 - [**Configuration Guide**](configuration.md): Learn how to customize the proxy's behavior.
 - [**API Reference**](api-reference.md): See the full list of supported Ollama API endpoints.
 - [**Usage Examples**](usage-examples.md): Practical examples of how to use the proxy with various tools.
 - [**Deployment Guide**](deployment.md): Find out how to deploy the proxy in a production environment.
 - [**Architecture Overview**](architecture.md): Get a deeper understanding of the project's design.
 - [**Troubleshooting Guide**](troubleshooting.md): Find solutions to common problems.
+
+### Advanced Features
+
+- [**Multi-Provider Support**](multi-provider.md): Configure and use multiple AI providers with intelligent routing.
+- [**CLI Tools & Administration**](cli-tools.md): Comprehensive guide to command-line tools and administrative interfaces.
 
 ## Contributing
 

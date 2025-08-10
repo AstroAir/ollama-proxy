@@ -13,23 +13,31 @@ from src.openrouter import OpenRouterClient, OpenRouterResponse
 
 @pytest.fixture
 def client():
-    with patch.dict(os.environ, {"OPENROUTER_API_KEY": "test-key"}):
-        # Mock the fetch_models call during app startup
-        with patch("src.openrouter.OpenRouterClient.fetch_models") as mock_fetch:
-            mock_response_data = {
-                "data": [
-                    {"id": "google/gemini-pro", "name": "Google: Gemini Pro"},
-                    {"id": "openai/gpt-4", "name": "OpenAI: GPT-4"},
-                ]
-            }
-            mock_response = OpenRouterResponse(
-                data=mock_response_data, status_code=200, headers={}, metrics=AsyncMock()
-            )
-            mock_fetch.return_value = mock_response
+    """Create test client with proper multi-provider setup."""
+    from src.multi_provider_config import MultiProviderSettings
 
-            app = create_app()
-            with TestClient(app) as c:
-                yield c
+    # Create settings with OpenRouter enabled
+    settings = MultiProviderSettings(
+        openrouter_enabled=True,
+        openrouter_api_key="test-api-key-1234567890",
+    )
+
+    # Mock the OpenRouterClient.fetch_models method
+    with patch("src.openrouter.OpenRouterClient.fetch_models") as mock_fetch:
+        mock_response_data = {
+            "data": [
+                {"id": "google/gemini-pro", "name": "Google: Gemini Pro"},
+                {"id": "openai/gpt-4", "name": "OpenAI: GPT-4"},
+            ]
+        }
+        mock_response = OpenRouterResponse(
+            data=mock_response_data, status_code=200, headers={}, metrics=AsyncMock()
+        )
+        mock_fetch.return_value = mock_response
+
+        app = create_app(settings)
+        with TestClient(app) as c:
+            yield c
 
 
 def test_root(client):
@@ -41,7 +49,7 @@ def test_root(client):
 def test_api_version(client):
     response = client.get("/api/version")
     assert response.status_code == 200
-    assert response.json() == {"version": "0.1.0-openrouter"}
+    assert response.json() == {"version": "0.2.0"}
 
 
 def test_api_tags(client):
@@ -57,7 +65,7 @@ def test_api_tags(client):
 def test_api_chat_non_streaming(mock_chat_completion, client):
     mock_response_data = {
         "id": "chatcmpl-123",
-        "choices": [{"message": {"content": "Hello"}}],
+        "choices": [{"message": {"content": "Hello"}, "finish_reason": "stop"}],
     }
     mock_response = OpenRouterResponse(
         data=mock_response_data, status_code=200, headers={}, metrics=AsyncMock()

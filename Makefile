@@ -113,8 +113,12 @@ docs-build:
 
 docs-serve:
 	@echo "Starting MkDocs development server..."
-	@echo "Open http://localhost:8000 in your browser"
-	@uv run mkdocs serve
+	@echo "Open http://localhost:8001 in your browser"
+	@uv run mkdocs serve --dev-addr=127.0.0.1:8001
+
+docs-stop:
+	@echo "Stopping MkDocs development server..."
+	@pkill -f "mkdocs serve" || echo "No MkDocs server running"
 
 # Cleaning
 clean:

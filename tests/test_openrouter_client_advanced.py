@@ -1,4 +1,4 @@
-"""Tests for enhanced OpenRouter client with modern features."""
+"""Tests for OpenRouter client with modern features."""
 
 from __future__ import annotations
 

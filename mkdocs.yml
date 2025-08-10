@@ -114,6 +114,9 @@ nav:
       - Configuration: configuration.md
       - Usage Examples: usage-examples.md
   - API Reference: api-reference.md
+  - Advanced Features:
+      - Multi-Provider Support: multi-provider.md
+      - CLI Tools & Administration: cli-tools.md
   - Deployment:
       - Deployment Guide: deployment.md
       - Docker: deployment.md#docker-deployment-recommended

@@ -19,7 +19,7 @@ Returns a simple health check message to confirm that the server is running.
 
 - **Success Response (200 OK)**:
 
-    ```
+    ```text
     Ollama is running
     ```
 
@@ -73,7 +73,7 @@ Returns metrics for monitoring and observability.
 
 #### `GET /api/tags`
 
-Lists all available models that are accessible through the proxy. The list is fetched from OpenRouter and can be filtered using the [model filter configuration](CONFIGURATION.md#model-filtering).
+Lists all available models that are accessible through the proxy. The list is fetched from OpenRouter and can be filtered using the [model filter configuration](configuration.md#model-filtering).
 
 - **Success Response (200 OK)**:
 
@@ -284,6 +284,93 @@ Lists running models (stubbed implementation).
     {
       "models": [],
       "created_at": "2023-12-12T14:00:00Z"
+    }
+    ```
+
+### Multi-Provider Endpoints
+
+#### `GET /api/providers`
+
+Lists all configured providers and their status.
+
+- **Success Response (200 OK)**:
+
+    ```json
+    {
+      "providers": [
+        {
+          "type": "openrouter",
+          "enabled": true,
+          "healthy": true,
+          "priority": 1,
+          "request_count": 1234,
+          "error_count": 5,
+          "error_rate": 0.004,
+          "avg_response_time_ms": 850.5
+        },
+        {
+          "type": "openai",
+          "enabled": true,
+          "healthy": true,
+          "priority": 2,
+          "request_count": 567,
+          "error_count": 2,
+          "error_rate": 0.003,
+          "avg_response_time_ms": 650.2
+        }
+      ]
+    }
+    ```
+
+#### `GET /api/providers/{provider_type}/stats`
+
+Get detailed statistics for a specific provider.
+
+- **Success Response (200 OK)**:
+
+    ```json
+    {
+      "provider_type": "openai",
+      "enabled": true,
+      "healthy": true,
+      "priority": 2,
+      "request_count": 567,
+      "successful_requests": 565,
+      "failed_requests": 2,
+      "error_rate": 0.003,
+      "avg_response_time_ms": 650.2,
+      "min_response_time_ms": 200.1,
+      "max_response_time_ms": 2500.8,
+      "circuit_breaker_state": "closed",
+      "last_health_check": "2023-12-12T14:00:00Z",
+      "models_available": 25
+    }
+    ```
+
+#### `GET /api/tags/{provider_type}`
+
+Lists models available from a specific provider.
+
+- **Success Response (200 OK)**:
+
+    ```json
+    {
+      "models": [
+        {
+          "name": "gpt-4:latest",
+          "provider": "openai",
+          "modified_at": "2023-12-12T14:00:00Z",
+          "size": 0,
+          "digest": "sha256:abcdef1234567890",
+          "details": {
+            "format": "api",
+            "family": "gpt",
+            "families": ["gpt"],
+            "parameter_size": "Unknown",
+            "quantization_level": "Unknown"
+          }
+        }
+      ]
     }
     ```
 

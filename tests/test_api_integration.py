@@ -41,7 +41,7 @@ def test_root(client):
 def test_api_version(client):
     response = client.get("/api/version")
     assert response.status_code == 200
-    assert response.json() == {"version": "0.1.0-openrouter"}
+    assert response.json() == {"version": "0.2.0"}
 
 
 @patch("src.openrouter.OpenRouterClient.fetch_models")
@@ -69,7 +69,7 @@ def test_api_tags(mock_fetch_models, client):
 def test_api_chat_non_streaming(mock_chat_completion, client):
     mock_response_data = {
         "id": "chatcmpl-123",
-        "choices": [{"message": {"content": "Hello"}}],
+        "choices": [{"message": {"content": "Hello"}, "finish_reason": "stop"}],
     }
     mock_response = OpenRouterResponse(
         data=mock_response_data, status_code=200, headers={}, metrics=AsyncMock()

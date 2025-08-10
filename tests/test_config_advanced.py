@@ -1,4 +1,4 @@
-"""Tests for enhanced configuration with pattern matching and modern features."""
+"""Tests for advanced configuration features with pattern matching and modern functionality."""
 
 from __future__ import annotations
 
