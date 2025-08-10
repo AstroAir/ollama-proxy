@@ -1,4 +1,32 @@
-# Python
+# Exclude Python cache and virtual environments
+__pycache__/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+
+# Exclude tests from production image build context (adjust if needed for integration tests)
+tests/
+
+# Local environment / tooling artifacts
+.git/
+.gitignore
+.DS_Store
+*.log
+
+# Build artifacts
+build/
+dist/
+
+# IDE/editor configs
+.vscode/
+.idea/
+
+# Ignore example files not required at runtime
+models-filter.txt.example
+
+# Keep README.md (referenced by pyproject) so do NOT ignore it
+# Keep pyproject.toml and uv.lock always# Python
 __pycache__/
 *.py[cod]
 *$py.class

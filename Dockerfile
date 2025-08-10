@@ -14,10 +14,12 @@ RUN pip install uv
 # Set working directory
 WORKDIR /app
 
-# Copy dependency files
-COPY pyproject.toml uv.lock ./
+# Copy project metadata and sources needed for editable install
+# Include README.md because pyproject references it for build metadata
+COPY pyproject.toml uv.lock README.md ./
+COPY src/ ./src/
 
-# Install dependencies using uv
+# Install dependencies and the project itself (editable) using uv
 RUN uv sync --frozen --no-dev
 
 # Stage 2: Runtime stage
