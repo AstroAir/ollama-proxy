@@ -1,5 +1,7 @@
 # Ollama Proxy
 
+[![Documentation Status](https://readthedocs.org/projects/ollama-proxy/badge/?version=latest)](https://ollama-proxy.readthedocs.io/en/latest/?badge=latest)
+
 A modern, high-performance multi-provider proxy server that translates Ollama API calls to multiple AI providers, enabling seamless access to a wide variety of AI models through the familiar Ollama interface.
 
 ## Overview

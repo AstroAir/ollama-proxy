@@ -1,0 +1,28 @@
+version: 2
+
+# Read the Docs configuration for building MkDocs documentation
+build:
+  os: ubuntu-24.04
+  tools:
+    python: "3.12"
+  jobs:
+    post_checkout:
+      - pip install --upgrade pip
+
+mkdocs:
+  configuration: mkdocs.yml
+  fail_on_warning: true
+
+python:
+  install:
+    - method: pip
+      path: .
+    - requirements: docs/requirements.txt
+
+formats:
+  - htmlzip
+  - pdf
+  - epub
+
+search:
+  ranking: simple
