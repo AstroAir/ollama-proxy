@@ -18,11 +18,3 @@ python:
     - method: pip
       path: .
     - requirements: docs/requirements.txt
-
-formats:
-  - htmlzip
-  - pdf
-  - epub
-
-search:
-  ranking: simple
