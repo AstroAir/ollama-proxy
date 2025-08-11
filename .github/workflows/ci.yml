@@ -5,16 +5,110 @@ on:
     branches: [ main, develop ]
   pull_request:
     branches: [ main, develop ]
+  schedule:
+    # Run daily at 2 AM UTC to catch dependency issues
+    - cron: '0 2 * * *'
+
+env:
+  PYTHON_VERSION: "3.12"
+  UV_CACHE_DIR: ~/.cache/uv
 
 jobs:
-  test:
+  # Pre-flight checks - fast feedback
+  pre-checks:
+    name: Pre-flight Checks
     runs-on: ubuntu-latest
+    outputs:
+      should-run-tests: ${{ steps.changes.outputs.should-run }}
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Check for relevant changes
+      id: changes
+      run: |
+        if [[ "${{ github.event_name }}" == "schedule" ]]; then
+          echo "should-run=true" >> $GITHUB_OUTPUT
+        elif git diff --name-only ${{ github.event.before }}..${{ github.sha }} | grep -E '\.(py|toml|yml|yaml|txt|md)$|Dockerfile|Makefile'; then
+          echo "should-run=true" >> $GITHUB_OUTPUT
+        else
+          echo "should-run=false" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Validate project structure
+      run: |
+        test -f pyproject.toml || (echo "Missing pyproject.toml" && exit 1)
+        test -f uv.lock || (echo "Missing uv.lock" && exit 1)
+        test -d src || (echo "Missing src directory" && exit 1)
+        test -d tests || (echo "Missing tests directory" && exit 1)
+
+  # Code quality and linting
+  quality:
+    name: Code Quality
+    runs-on: ubuntu-latest
+    needs: pre-checks
+    if: needs.pre-checks.outputs.should-run-tests == 'true'
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Cache uv
+      uses: actions/cache@v4
+      with:
+        path: ${{ env.UV_CACHE_DIR }}
+        key: uv-${{ runner.os }}-${{ hashFiles('uv.lock') }}
+        restore-keys: |
+          uv-${{ runner.os }}-
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v2
+      with:
+        version: "latest"
+
+    - name: Set up Python ${{ env.PYTHON_VERSION }}
+      run: uv python install ${{ env.PYTHON_VERSION }}
+
+    - name: Install dependencies
+      run: uv sync --all-extras --dev
+
+    - name: Lint with flake8
+      run: uv run flake8 src tests --format=github
+
+    - name: Check code formatting with black
+      run: uv run black --check --diff src tests
+
+    - name: Check import sorting with isort
+      run: uv run isort --check-only --diff src tests
+
+    - name: Type check with mypy
+      run: uv run mypy src --show-error-codes
+
+  # Multi-platform testing
+  test:
+    name: Test (${{ matrix.os }}, Python ${{ matrix.python-version }})
+    runs-on: ${{ matrix.os }}
+    needs: [pre-checks, quality]
+    if: needs.pre-checks.outputs.should-run-tests == 'true'
     strategy:
+      fail-fast: false
       matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
         python-version: ["3.12"]
+        include:
+          # Test with Python 3.13 on Ubuntu only
+          - os: ubuntu-latest
+            python-version: "3.13"
 
     steps:
     - uses: actions/checkout@v4
+
+    - name: Cache uv
+      uses: actions/cache@v4
+      with:
+        path: ${{ env.UV_CACHE_DIR }}
+        key: uv-${{ runner.os }}-${{ hashFiles('uv.lock') }}
+        restore-keys: |
+          uv-${{ runner.os }}-
 
     - name: Install uv
       uses: astral-sh/setup-uv@v2
@@ -27,31 +121,84 @@ jobs:
     - name: Install dependencies
       run: uv sync --all-extras --dev
 
-    - name: Lint with flake8
-      run: uv run flake8 src tests
+    - name: Run unit tests
+      run: uv run pytest tests/ -m "unit or not integration" --cov=src --cov-report=xml --cov-report=term-missing --junitxml=test-results-${{ matrix.os }}-${{ matrix.python-version }}.xml
 
-    - name: Check code formatting with black
-      run: uv run black --check src tests
-
-    - name: Check import sorting with isort
-      run: uv run isort --check-only src tests
-
-    - name: Type check with mypy
-      run: uv run mypy src
-
-    - name: Test with pytest
-      run: uv run pytest --cov=src --cov-report=xml --cov-report=term-missing
+    - name: Upload test results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: test-results-${{ matrix.os }}-${{ matrix.python-version }}
+        path: test-results-*.xml
 
     - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v3
+      uses: codecov/codecov-action@v4
+      if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.12'
       with:
         file: ./coverage.xml
         flags: unittests
         name: codecov-umbrella
+        token: ${{ secrets.CODECOV_TOKEN }}
 
-  docker:
+  # Integration tests
+  integration:
+    name: Integration Tests
     runs-on: ubuntu-latest
-    needs: test
+    needs: [pre-checks, test]
+    if: needs.pre-checks.outputs.should-run-tests == 'true'
+    services:
+      # Add any required services for integration tests
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Cache uv
+      uses: actions/cache@v4
+      with:
+        path: ${{ env.UV_CACHE_DIR }}
+        key: uv-${{ runner.os }}-${{ hashFiles('uv.lock') }}
+        restore-keys: |
+          uv-${{ runner.os }}-
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v2
+      with:
+        version: "latest"
+
+    - name: Set up Python ${{ env.PYTHON_VERSION }}
+      run: uv python install ${{ env.PYTHON_VERSION }}
+
+    - name: Install dependencies
+      run: uv sync --all-extras --dev
+
+    - name: Run integration tests
+      run: uv run pytest tests/ -m "integration" --cov=src --cov-report=xml --cov-report=term-missing
+      env:
+        OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY_TEST }}
+        REDIS_URL: redis://localhost:6379
+
+    - name: Upload integration test coverage
+      uses: codecov/codecov-action@v4
+      with:
+        file: ./coverage.xml
+        flags: integration
+        name: codecov-integration
+
+  # Docker build and test
+  docker:
+    name: Docker Build & Test
+    runs-on: ubuntu-latest
+    needs: [pre-checks, test]
+    if: needs.pre-checks.outputs.should-run-tests == 'true'
 
     steps:
     - uses: actions/checkout@v4
@@ -59,46 +206,227 @@ jobs:
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
 
+    - name: Cache Docker layers
+      uses: actions/cache@v4
+      with:
+        path: /tmp/.buildx-cache
+        key: ${{ runner.os }}-buildx-${{ github.sha }}
+        restore-keys: |
+          ${{ runner.os }}-buildx-
+
     - name: Build Docker image
       uses: docker/build-push-action@v5
       with:
         context: .
         push: false
         tags: ollama-proxy:test
-        cache-from: type=gha
-        cache-to: type=gha,mode=max
+        cache-from: type=local,src=/tmp/.buildx-cache
+        cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
+        platforms: linux/amd64,linux/arm64
 
-    - name: Test Docker image
+    - name: Move cache
+      run: |
+        rm -rf /tmp/.buildx-cache
+        mv /tmp/.buildx-cache-new /tmp/.buildx-cache
+
+    - name: Test Docker image startup
       run: |
         docker run --rm -d --name test-container -p 11434:11434 \
           -e OPENROUTER_API_KEY=test-key \
+          -e LOG_LEVEL=DEBUG \
           ollama-proxy:test
-        sleep 10
-        # Basic health check (will fail without real API key, but tests container startup)
+        sleep 15
+
+        # Check if container is running
+        if ! docker ps | grep test-container; then
+          echo "Container failed to start"
+          docker logs test-container
+          exit 1
+        fi
+
+        # Basic health check
         docker logs test-container
         docker stop test-container
 
+    - name: Run container security scan
+      uses: aquasecurity/trivy-action@master
+      with:
+        image-ref: 'ollama-proxy:test'
+        format: 'sarif'
+        output: 'trivy-results.sarif'
+
+    - name: Upload Trivy scan results
+      uses: github/codeql-action/upload-sarif@v3
+      if: always()
+      with:
+        sarif_file: 'trivy-results.sarif'
+
+  # Security scanning
   security:
+    name: Security Scan
     runs-on: ubuntu-latest
+    needs: pre-checks
+    if: needs.pre-checks.outputs.should-run-tests == 'true'
+    permissions:
+      security-events: write
 
     steps:
     - uses: actions/checkout@v4
 
+    - name: Cache uv
+      uses: actions/cache@v4
+      with:
+        path: ${{ env.UV_CACHE_DIR }}
+        key: uv-${{ runner.os }}-${{ hashFiles('uv.lock') }}
+        restore-keys: |
+          uv-${{ runner.os }}-
+
     - name: Install uv
       uses: astral-sh/setup-uv@v2
+      with:
+        version: "latest"
 
-    - name: Set up Python
-      run: uv python install 3.12
+    - name: Set up Python ${{ env.PYTHON_VERSION }}
+      run: uv python install ${{ env.PYTHON_VERSION }}
 
     - name: Install dependencies
       run: uv sync --dev
 
     - name: Run bandit security check
       run: uv run bandit -r src/ -f json -o bandit-report.json
+      continue-on-error: true
 
-    - name: Upload bandit report
-      uses: actions/upload-artifact@v3
+    - name: Run safety check for dependencies
+      run: uv run pip-audit --format=json --output=safety-report.json
+      continue-on-error: true
+
+    - name: Upload security reports
+      uses: actions/upload-artifact@v4
       if: always()
       with:
-        name: bandit-report
-        path: bandit-report.json
+        name: security-reports
+        path: |
+          bandit-report.json
+          safety-report.json
+
+    - name: Initialize CodeQL
+      uses: github/codeql-action/init@v3
+      with:
+        languages: python
+
+    - name: Perform CodeQL Analysis
+      uses: github/codeql-action/analyze@v3
+
+  # Performance testing
+  performance:
+    name: Performance Tests
+    runs-on: ubuntu-latest
+    needs: [pre-checks, test]
+    if: needs.pre-checks.outputs.should-run-tests == 'true' && github.event_name != 'pull_request'
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Cache uv
+      uses: actions/cache@v4
+      with:
+        path: ${{ env.UV_CACHE_DIR }}
+        key: uv-${{ runner.os }}-${{ hashFiles('uv.lock') }}
+        restore-keys: |
+          uv-${{ runner.os }}-
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v2
+      with:
+        version: "latest"
+
+    - name: Set up Python ${{ env.PYTHON_VERSION }}
+      run: uv python install ${{ env.PYTHON_VERSION }}
+
+    - name: Install dependencies
+      run: uv sync --all-extras --dev
+
+    - name: Run performance tests
+      run: uv run pytest tests/ -m "slow" --benchmark-only --benchmark-json=benchmark.json
+      continue-on-error: true
+
+    - name: Upload benchmark results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: benchmark-results
+        path: benchmark.json
+
+  # Dependency check
+  dependency-check:
+    name: Dependency Check
+    runs-on: ubuntu-latest
+    needs: pre-checks
+    if: needs.pre-checks.outputs.should-run-tests == 'true'
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v2
+      with:
+        version: "latest"
+
+    - name: Set up Python ${{ env.PYTHON_VERSION }}
+      run: uv python install ${{ env.PYTHON_VERSION }}
+
+    - name: Check for dependency updates
+      run: |
+        uv sync --dev
+        uv tree --outdated || echo "No outdated dependencies found"
+
+    - name: Check for security vulnerabilities
+      run: |
+        uv run pip-audit --format=json --output=vulnerability-report.json || echo "Vulnerability check completed"
+
+    - name: Upload vulnerability report
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: vulnerability-report
+        path: vulnerability-report.json
+
+  # Final status check
+  ci-success:
+    name: CI Success
+    runs-on: ubuntu-latest
+    needs: [pre-checks, quality, test, integration, docker, security, dependency-check]
+    if: always() && needs.pre-checks.outputs.should-run-tests == 'true'
+
+    steps:
+    - name: Check all jobs status
+      run: |
+        if [[ "${{ needs.quality.result }}" != "success" ]]; then
+          echo "Quality checks failed"
+          exit 1
+        fi
+        if [[ "${{ needs.test.result }}" != "success" ]]; then
+          echo "Tests failed"
+          exit 1
+        fi
+        if [[ "${{ needs.integration.result }}" != "success" ]]; then
+          echo "Integration tests failed"
+          exit 1
+        fi
+        if [[ "${{ needs.docker.result }}" != "success" ]]; then
+          echo "Docker build failed"
+          exit 1
+        fi
+        if [[ "${{ needs.security.result }}" != "success" ]]; then
+          echo "Security checks failed"
+          exit 1
+        fi
+        if [[ "${{ needs.dependency-check.result }}" != "success" ]]; then
+          echo "Dependency check failed"
+          exit 1
+        fi
+        echo "All CI checks passed successfully!"
+
+    - name: Post success notification
+      if: success()
+      run: echo "✅ All CI checks completed successfully"

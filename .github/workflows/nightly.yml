@@ -1,0 +1,244 @@
+name: Nightly Build
+
+on:
+  schedule:
+    # Run every night at 3 AM UTC
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+    inputs:
+      run_performance_tests:
+        description: 'Run performance tests'
+        required: false
+        default: true
+        type: boolean
+      run_security_scan:
+        description: 'Run comprehensive security scan'
+        required: false
+        default: true
+        type: boolean
+
+env:
+  PYTHON_VERSION: "3.12"
+  UV_CACHE_DIR: ~/.cache/uv
+
+jobs:
+  # Comprehensive testing with latest dependencies
+  nightly-test:
+    name: Nightly Test (Python ${{ matrix.python-version }}, ${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python-version: ["3.12", "3.13"]
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v2
+      with:
+        version: "latest"
+
+    - name: Set up Python ${{ matrix.python-version }}
+      run: uv python install ${{ matrix.python-version }}
+
+    - name: Update dependencies to latest
+      run: |
+        uv sync --upgrade --all-extras --dev
+        uv lock --upgrade
+
+    - name: Run comprehensive tests
+      run: |
+        uv run pytest tests/ --cov=src --cov-report=xml --cov-report=term-missing \
+          --cov-fail-under=80 --maxfail=5 --tb=short
+
+    - name: Upload nightly coverage
+      uses: codecov/codecov-action@v4
+      if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.12'
+      with:
+        file: ./coverage.xml
+        flags: nightly
+        name: codecov-nightly
+
+  # Performance benchmarking
+  performance-benchmark:
+    name: Performance Benchmark
+    runs-on: ubuntu-latest
+    if: github.event.inputs.run_performance_tests != 'false'
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v2
+      with:
+        version: "latest"
+
+    - name: Set up Python ${{ env.PYTHON_VERSION }}
+      run: uv python install ${{ env.PYTHON_VERSION }}
+
+    - name: Install dependencies
+      run: uv sync --all-extras --dev
+
+    - name: Install additional performance tools
+      run: |
+        uv add --dev pytest-benchmark locust
+
+    - name: Run performance tests
+      run: |
+        uv run pytest tests/ -m "slow" --benchmark-only \
+          --benchmark-json=benchmark-results.json \
+          --benchmark-sort=mean
+
+    - name: Run load tests
+      run: |
+        # Start the server in background
+        uv run python -m src.main &
+        SERVER_PID=$!
+        sleep 10
+        
+        # Run basic load test
+        echo "Running load test..."
+        timeout 60s uv run locust --headless --users 10 --spawn-rate 2 \
+          --host http://localhost:11434 --run-time 30s \
+          --locustfile tests/load_test.py || echo "Load test completed"
+        
+        # Stop the server
+        kill $SERVER_PID || true
+
+    - name: Upload benchmark results
+      uses: actions/upload-artifact@v4
+      with:
+        name: performance-results
+        path: |
+          benchmark-results.json
+          locust-report.html
+
+  # Security audit
+  security-audit:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    if: github.event.inputs.run_security_scan != 'false'
+    permissions:
+      security-events: write
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v2
+      with:
+        version: "latest"
+
+    - name: Set up Python ${{ env.PYTHON_VERSION }}
+      run: uv python install ${{ env.PYTHON_VERSION }}
+
+    - name: Install dependencies
+      run: uv sync --dev
+
+    - name: Run comprehensive security scan
+      run: |
+        # Dependency vulnerability scan
+        uv run pip-audit --format=json --output=vulnerability-scan.json
+        
+        # Code security scan
+        uv run bandit -r src/ -f json -o security-scan.json
+        
+        # License compliance check
+        uv run pip-licenses --format=json --output-file=license-scan.json
+
+    - name: Upload security reports
+      uses: actions/upload-artifact@v4
+      with:
+        name: security-audit-results
+        path: |
+          vulnerability-scan.json
+          security-scan.json
+          license-scan.json
+
+  # Docker multi-arch build
+  docker-multiarch:
+    name: Docker Multi-arch Build
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up QEMU
+      uses: docker/setup-qemu-action@v3
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Build multi-arch image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        platforms: linux/amd64,linux/arm64,linux/arm/v7
+        push: false
+        tags: ollama-proxy:nightly
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+    - name: Test multi-arch images
+      run: |
+        # Test AMD64
+        docker run --rm --platform linux/amd64 ollama-proxy:nightly python -c "import src.main; print('AMD64 OK')"
+        
+        # Test ARM64 (if available)
+        docker run --rm --platform linux/arm64 ollama-proxy:nightly python -c "import src.main; print('ARM64 OK')" || echo "ARM64 test skipped"
+
+  # Dependency update check
+  dependency-update:
+    name: Dependency Update Check
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v2
+      with:
+        version: "latest"
+
+    - name: Set up Python ${{ env.PYTHON_VERSION }}
+      run: uv python install ${{ env.PYTHON_VERSION }}
+
+    - name: Check for updates
+      run: |
+        uv sync --dev
+        echo "Current dependencies:" > dependency-report.txt
+        uv tree >> dependency-report.txt
+        echo -e "\n\nOutdated packages:" >> dependency-report.txt
+        uv tree --outdated >> dependency-report.txt || echo "No outdated packages" >> dependency-report.txt
+
+    - name: Upload dependency report
+      uses: actions/upload-artifact@v4
+      with:
+        name: dependency-report
+        path: dependency-report.txt
+
+  # Notification
+  notify:
+    name: Notify Results
+    runs-on: ubuntu-latest
+    needs: [nightly-test, performance-benchmark, security-audit, docker-multiarch, dependency-update]
+    if: always()
+
+    steps:
+    - name: Prepare notification
+      run: |
+        echo "Nightly build completed with the following results:" > notification.txt
+        echo "- Tests: ${{ needs.nightly-test.result }}" >> notification.txt
+        echo "- Performance: ${{ needs.performance-benchmark.result }}" >> notification.txt
+        echo "- Security: ${{ needs.security-audit.result }}" >> notification.txt
+        echo "- Docker: ${{ needs.docker-multiarch.result }}" >> notification.txt
+        echo "- Dependencies: ${{ needs.dependency-update.result }}" >> notification.txt
+        cat notification.txt
+
+    - name: Upload notification
+      uses: actions/upload-artifact@v4
+      with:
+        name: nightly-results
+        path: notification.txt

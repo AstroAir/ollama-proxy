@@ -51,12 +51,40 @@ repos:
         args: ["-c", "pyproject.toml"]
         additional_dependencies: ["bandit[toml]"]
 
+  # Dependency vulnerability scanning
+  - repo: https://github.com/pyupio/safety
+    rev: 3.0.1
+    hooks:
+      - id: safety
+        args: ["--short-report"]
+
+  # Secret detection
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.4.0
+    hooks:
+      - id: detect-secrets
+        args: ["--baseline", ".secrets.baseline"]
+
   # Dockerfile linting
   - repo: https://github.com/hadolint/hadolint
     rev: v2.12.0
     hooks:
       - id: hadolint-docker
         args: ["--ignore", "DL3008", "--ignore", "DL3009"]
+
+  # YAML security
+  - repo: https://github.com/adrienverge/yamllint
+    rev: v1.35.1
+    hooks:
+      - id: yamllint
+        args: ["-d", "relaxed"]
+
+  # Additional security checks
+  - repo: https://github.com/PyCQA/semgrep
+    rev: v1.45.0
+    hooks:
+      - id: semgrep
+        args: ["--config=auto", "--error"]
 
 # Configuration
 default_stages: [commit]

@@ -81,6 +81,24 @@ dev = [
     "pytest>=8.4.1",
     "respx>=0.21.0",
     "types-psutil>=7.0.0.20250801",
+    "types-requests>=2.32.4.20250809",
+]
+test = [
+    "pytest-benchmark>=4.0.0",
+    "pytest-xdist>=3.0.0",
+    "pytest-mock>=3.12.0",
+    "pytest-timeout>=2.2.0",
+    "locust>=2.17.0",
+    "pip-audit>=2.6.0",
+    "bandit>=1.7.5",
+    "safety>=3.0.0",
+    "httpx>=0.28.1",
+]
+performance = [
+    "locust>=2.17.0",
+    "pytest-benchmark>=4.0.0",
+    "memory-profiler>=0.61.0",
+    "py-spy>=0.3.14",
 ]
 
 # Tool configurations
@@ -130,7 +148,7 @@ disallow_untyped_defs = false
 
 [tool.pytest.ini_options]
 minversion = "7.0"
-addopts = "-ra -q --strict-markers --strict-config"
+addopts = "-ra -q --strict-markers --strict-config --tb=short"
 testpaths = ["tests"]
 python_files = ["test_*.py", "*_test.py"]
 python_classes = ["Test*"]
@@ -139,7 +157,18 @@ markers = [
     "slow: marks tests as slow (deselect with '-m \"not slow\"')",
     "integration: marks tests as integration tests",
     "unit: marks tests as unit tests",
+    "e2e: marks tests as end-to-end tests",
+    "performance: marks tests as performance tests",
+    "load: marks tests as load tests",
+    "security: marks tests as security tests",
+    "contract: marks tests as contract tests",
+    "smoke: marks tests as smoke tests",
 ]
+filterwarnings = [
+    "ignore::DeprecationWarning",
+    "ignore::PendingDeprecationWarning",
+]
+asyncio_mode = "auto"
 
 [tool.coverage.run]
 source = ["src"]

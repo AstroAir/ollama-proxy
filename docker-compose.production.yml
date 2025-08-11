@@ -1,0 +1,305 @@
+version: "3.8"
+
+services:
+  ollama-proxy:
+    image: ${DOCKER_REGISTRY:-}ollama-proxy:${VERSION:-latest}
+    ports:
+      - "${HOST_PORT:-11434}:11434"
+    environment:
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - ENVIRONMENT=production
+      - HOST=0.0.0.0
+      - PORT=11434
+      - MODELS_FILTER_PATH=/app/data/models-filter.txt
+      - OPENROUTER_BASE_URL=https://openrouter.ai/api/v1
+      - OPENROUTER_TIMEOUT=300
+      - MAX_CONCURRENT_REQUESTS=200
+      - HEALTH_CHECK_INTERVAL=60
+    volumes:
+      - ./models-filter.txt:/app/data/models-filter.txt:ro
+      - production-data:/app/data
+      - production-logs:/app/logs
+    restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import httpx; httpx.get('http://localhost:11434/health', timeout=5)",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    networks:
+      - production-network
+    deploy:
+      replicas: ${REPLICAS:-2}
+      resources:
+        limits:
+          memory: 2G
+          cpus: "2.0"
+        reservations:
+          memory: 1G
+          cpus: "1.0"
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+      update_config:
+        parallelism: 1
+        delay: 30s
+        failure_action: rollback
+        monitor: 60s
+        order: start-first
+      rollback_config:
+        parallelism: 1
+        delay: 10s
+        monitor: 60s
+
+  # Load balancer
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+      - production-nginx-logs:/var/log/nginx
+    restart: unless-stopped
+    networks:
+      - production-network
+    depends_on:
+      - ollama-proxy
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: "0.5"
+        reservations:
+          memory: 256M
+          cpus: "0.25"
+
+  # Redis cluster for production caching
+  redis-master:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - production-redis-master-data:/data
+      - ./redis/redis-master.conf:/usr/local/etc/redis/redis.conf:ro
+    command: redis-server /usr/local/etc/redis/redis.conf
+    restart: unless-stopped
+    networks:
+      - production-network
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: "1.0"
+        reservations:
+          memory: 512M
+          cpus: "0.5"
+
+  redis-replica:
+    image: redis:7-alpine
+    volumes:
+      - production-redis-replica-data:/data
+      - ./redis/redis-replica.conf:/usr/local/etc/redis/redis.conf:ro
+    command: redis-server /usr/local/etc/redis/redis.conf
+    restart: unless-stopped
+    networks:
+      - production-network
+    depends_on:
+      - redis-master
+    deploy:
+      replicas: 2
+      resources:
+        limits:
+          memory: 512M
+          cpus: "0.5"
+        reservations:
+          memory: 256M
+          cpus: "0.25"
+
+  # Monitoring stack
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.production.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/rules:/etc/prometheus/rules:ro
+      - production-prometheus-data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--web.console.libraries=/etc/prometheus/console_libraries"
+      - "--web.console.templates=/etc/prometheus/consoles"
+      - "--web.enable-lifecycle"
+      - "--storage.tsdb.retention.time=30d"
+      - "--web.enable-admin-api"
+    restart: unless-stopped
+    networks:
+      - production-network
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: "1.0"
+        reservations:
+          memory: 1G
+          cpus: "0.5"
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD}
+      - GF_SECURITY_SECRET_KEY=${GRAFANA_SECRET_KEY}
+      - GF_DATABASE_TYPE=postgres
+      - GF_DATABASE_HOST=postgres:5432
+      - GF_DATABASE_NAME=grafana
+      - GF_DATABASE_USER=grafana
+      - GF_DATABASE_PASSWORD=${POSTGRES_PASSWORD}
+      - GF_INSTALL_PLUGINS=grafana-piechart-panel,grafana-worldmap-panel
+    volumes:
+      - production-grafana-data:/var/lib/grafana
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources:ro
+    restart: unless-stopped
+    networks:
+      - production-network
+    depends_on:
+      - prometheus
+      - postgres
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: "0.5"
+        reservations:
+          memory: 512M
+          cpus: "0.25"
+
+  # Database for Grafana
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_DB=grafana
+      - POSTGRES_USER=grafana
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    volumes:
+      - production-postgres-data:/var/lib/postgresql/data
+    restart: unless-stopped
+    networks:
+      - production-network
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: "0.5"
+        reservations:
+          memory: 256M
+          cpus: "0.25"
+
+  # Alertmanager
+  alertmanager:
+    image: prom/alertmanager:latest
+    ports:
+      - "9093:9093"
+    volumes:
+      - ./monitoring/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - production-alertmanager-data:/alertmanager
+    command:
+      - "--config.file=/etc/alertmanager/alertmanager.yml"
+      - "--storage.path=/alertmanager"
+      - "--web.external-url=http://localhost:9093"
+    restart: unless-stopped
+    networks:
+      - production-network
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: "0.25"
+        reservations:
+          memory: 128M
+          cpus: "0.1"
+
+  # Log aggregation
+  loki:
+    image: grafana/loki:latest
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./monitoring/loki.production.yml:/etc/loki/local-config.yaml:ro
+      - production-loki-data:/loki
+    command: -config.file=/etc/loki/local-config.yaml
+    restart: unless-stopped
+    networks:
+      - production-network
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: "0.5"
+        reservations:
+          memory: 512M
+          cpus: "0.25"
+
+  promtail:
+    image: grafana/promtail:latest
+    volumes:
+      - production-logs:/var/log/ollama:ro
+      - production-nginx-logs:/var/log/nginx:ro
+      - ./monitoring/promtail.production.yml:/etc/promtail/config.yml:ro
+    command: -config.file=/etc/promtail/config.yml
+    restart: unless-stopped
+    networks:
+      - production-network
+    depends_on:
+      - loki
+    deploy:
+      mode: global
+      resources:
+        limits:
+          memory: 256M
+          cpus: "0.25"
+        reservations:
+          memory: 128M
+          cpus: "0.1"
+
+volumes:
+  production-data:
+  production-logs:
+  production-nginx-logs:
+  production-redis-master-data:
+  production-redis-replica-data:
+  production-prometheus-data:
+  production-grafana-data:
+  production-postgres-data:
+  production-alertmanager-data:
+  production-loki-data:
+
+networks:
+  production-network:
+    driver: overlay
+    attachable: true
+    ipam:
+      config:
+        - subnet: 172.30.0.0/16
+
+# Secrets for production
+secrets:
+  openrouter_api_key:
+    external: true
+  grafana_password:
+    external: true
+  postgres_password:
+    external: true

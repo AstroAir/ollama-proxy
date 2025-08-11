@@ -1,0 +1,102 @@
+groups:
+  - name: ollama-proxy
+    rules:
+      # Service availability
+      - alert: OllamaProxyDown
+        expr: up{job="ollama-proxy"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Ollama Proxy is down"
+          description: "Ollama Proxy has been down for more than 1 minute."
+
+      # Health check failures
+      - alert: OllamaProxyHealthCheckFailing
+        expr: up{job="ollama-proxy-health"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Ollama Proxy health check failing"
+          description: "Ollama Proxy health check has been failing for more than 2 minutes."
+
+      # High error rate
+      - alert: OllamaProxyHighErrorRate
+        expr: rate(http_requests_total{job="ollama-proxy",status=~"5.."}[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High error rate in Ollama Proxy"
+          description: "Error rate is {{ $value }} errors per second."
+
+      # High response time
+      - alert: OllamaProxyHighResponseTime
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job="ollama-proxy"}[5m])) > 5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High response time in Ollama Proxy"
+          description: "95th percentile response time is {{ $value }} seconds."
+
+      # High memory usage
+      - alert: OllamaProxyHighMemoryUsage
+        expr: process_resident_memory_bytes{job="ollama-proxy"} / 1024 / 1024 > 500
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High memory usage in Ollama Proxy"
+          description: "Memory usage is {{ $value }}MB."
+
+      # High CPU usage
+      - alert: OllamaProxyHighCPUUsage
+        expr: rate(process_cpu_seconds_total{job="ollama-proxy"}[5m]) * 100 > 80
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU usage in Ollama Proxy"
+          description: "CPU usage is {{ $value }}%."
+
+      # Too many concurrent requests
+      - alert: OllamaProxyTooManyRequests
+        expr: http_requests_active{job="ollama-proxy"} > 100
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Too many concurrent requests"
+          description: "{{ $value }} concurrent requests are active."
+
+      # OpenRouter API errors
+      - alert: OpenRouterAPIErrors
+        expr: rate(openrouter_api_errors_total[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "OpenRouter API errors"
+          description: "OpenRouter API error rate is {{ $value }} errors per second."
+
+      # Disk space
+      - alert: OllamaProxyLowDiskSpace
+        expr: (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) * 100 < 10
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Low disk space"
+          description: "Disk space is {{ $value }}% full."
+
+      # Redis connection issues
+      - alert: RedisConnectionFailed
+        expr: up{job="redis"} == 0
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Redis connection failed"
+          description: "Cannot connect to Redis for more than 2 minutes."
