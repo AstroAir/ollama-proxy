@@ -428,7 +428,7 @@ If you are still having trouble after consulting this guide:
    - Your configuration files (with sensitive information redacted)
    - Steps to reproduce the issue
 
-2. **Open an issue**: Please [open an issue](https://github.com/your-username/ollama-proxy/issues) on GitHub with a detailed description of the problem, including:
+2. **Open an issue**: Please [open an issue](https://github.com/AstroAir/ollama-proxy/issues) on GitHub with a detailed description of the problem, including:
    - Your environment (OS, Docker version, etc.)
    - Steps to reproduce
    - Expected vs. actual behavior

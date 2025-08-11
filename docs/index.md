@@ -4,12 +4,10 @@ hide:
   - toc
 ---
 
-# Ollama Proxy
-
 A modern, high-performance proxy server that translates Ollama API calls to OpenRouter, enabling seamless access to a wide variety of AI models through the familiar Ollama interface.
 
 [![PyPI](https://img.shields.io/pypi/v/ollama-proxy)](https://pypi.org/project/ollama-proxy/)
-[![License](https://img.shields.io/github/license/your-username/ollama-proxy)](https://github.com/your-username/ollama-proxy/blob/main/LICENSE)
+[![License](https://img.shields.io/github/license/your-username/ollama-proxy)](https://github.com/AstroAir/ollama-proxy/blob/main/LICENSE)
 [![Python Version](https://img.shields.io/pypi/pyversions/ollama-proxy)](https://pypi.org/project/ollama-proxy/)
 
 ---
@@ -39,7 +37,7 @@ Ollama Proxy acts as a bridge between any Ollama-compatible client and the OpenR
 1. **Clone the repository:**
 
     ```bash
-    git clone https://github.com/your-username/ollama-proxy.git
+    git clone https://github.com/AstroAir/ollama-proxy.git
     cd ollama-proxy
     ```
 
@@ -88,4 +86,4 @@ Contributions are welcome! Please see the [Contributing Guide](contributing.md) 
 
 ## License
 
-This project is licensed under the MIT License. See the [LICENSE](https://github.com/your-username/ollama-proxy/blob/main/LICENSE) file for details.
+This project is licensed under the MIT License. See the [LICENSE](https://github.com/AstroAir/ollama-proxy/blob/main/LICENSE) file for details.

@@ -6,7 +6,7 @@ This document provides a deep dive into the architecture of the Ollama Proxy, it
 
 The project is organized into two main directories: `src` for the application's source code and `tests` for the test suite.
 
-```
+```txt
 src/
 ├── __init__.py
 ├── main.py              # Entry point and CLI

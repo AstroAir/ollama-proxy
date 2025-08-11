@@ -1,11 +1,11 @@
 site_name: Ollama Proxy
 site_description: A proxy server that translates Ollama API calls to OpenRouter API calls
 site_author: Ollama Proxy Contributors
-site_url: https://github.com/your-username/ollama-proxy
+site_url: https://github.com/AstroAir/ollama-proxy
 
 # Repository
 repo_name: your-username/ollama-proxy
-repo_url: https://github.com/your-username/ollama-proxy
+repo_url: https://github.com/AstroAir/ollama-proxy
 
 # Copyright
 copyright: Copyright &copy; 2025 Ollama Proxy Contributors
@@ -60,7 +60,7 @@ plugins:
 extra:
   social:
     - icon: fontawesome/brands/github
-      link: https://github.com/your-username/ollama-proxy
+      link: https://github.com/AstroAir/ollama-proxy
     - icon: fontawesome/brands/python
       link: https://pypi.org/project/ollama-proxy/
 

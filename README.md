@@ -29,12 +29,14 @@ Ollama Proxy acts as a bridge between any Ollama-compatible client and multiple 
 ### Quick Start
 
 1. **Clone the repository:**
+
    ```bash
-   git clone https://github.com/your-username/ollama-proxy.git
+   git clone https://github.com/AstroAir/ollama-proxy.git
    cd ollama-proxy
    ```
 
 2. **Set up development environment (recommended):**
+
    ```bash
    # Unix/Linux/macOS
    ./scripts/dev-setup.sh
@@ -48,11 +50,13 @@ Ollama Proxy acts as a bridge between any Ollama-compatible client and multiple 
 
 3. **Configure your API key:**
    Edit the `.env` file created during setup:
+
    ```env
    OPENROUTER_API_KEY="your_openrouter_api_key_here"
    ```
 
 4. **Start the server:**
+
    ```bash
    # Multiple ways to start:
    ollama-proxy                    # Basic start
@@ -65,6 +69,7 @@ Ollama Proxy acts as a bridge between any Ollama-compatible client and multiple 
 ### Alternative Installation Methods
 
 #### Using uv (Recommended)
+
 ```bash
 # Install uv if not already installed
 curl -LsSf https://astral.sh/uv/install.sh | sh
@@ -74,6 +79,7 @@ uv sync --all-extras --dev
 ```
 
 #### Using pip
+
 ```bash
 pip install -e .
 # For development
@@ -81,6 +87,7 @@ pip install -e ".[test]"
 ```
 
 #### Using Docker
+
 ```bash
 docker build -t ollama-proxy .
 docker run -p 11434:11434 -e OPENROUTER_API_KEY=your_key ollama-proxy
@@ -95,28 +102,33 @@ For more detailed instructions, see the [full documentation](docs/index.md).
 Ollama Proxy provides multiple entry points for different use cases:
 
 #### Main Entry Points
+
 - `ollama-proxy` - Standard server mode
 - `ollama-proxy-server` - Alias for standard mode
 - `ollama-proxy-dev` - Development mode with auto-reload
 - `ollama-proxy-daemon` - Daemon mode for background services
 
 #### Administrative Tools
+
 - `ollama-proxy-admin` - Administrative interface
 - `ollama-proxy-health` - Health check utility
 - `ollama-proxy-config` - Configuration management
 - `ollama-proxy-benchmark` - Performance benchmarking
 
 #### Development Tools
+
 - `ollama-proxy-test` - Test runner
 - `ollama-proxy-lint` - Code linting
 - `ollama-proxy-format` - Code formatting
 
 #### Unified CLI Interface
+
 - `ollama-proxy-cli` - Unified command-line interface with subcommands
 
 ### Command Examples
 
 #### Starting the Server
+
 ```bash
 # Basic server start
 ollama-proxy
@@ -135,6 +147,7 @@ ollama-proxy-daemon
 ```
 
 #### Using the Unified CLI
+
 ```bash
 # Start server (default subcommand)
 ollama-proxy-cli server --host 0.0.0.0 --port 8080
@@ -165,6 +178,7 @@ ollama-proxy-cli format --check
 ```
 
 #### Cross-Platform Scripts
+
 ```bash
 # Unix/Linux/macOS
 ./scripts/start-server.sh --dev
@@ -182,6 +196,7 @@ python scripts/launcher.py --host 0.0.0.0 --port 8080
 ```
 
 #### Using Make/Batch Commands
+
 ```bash
 # Unix/Linux/macOS with Make
 make quickstart          # Complete setup
@@ -200,6 +215,7 @@ make.bat health-check  # Check server health
 ## Quick Start Examples
 
 ### Basic Chat Request
+
 ```bash
 # Non-streaming chat
 curl http://localhost:11434/api/chat -d '{
@@ -217,11 +233,13 @@ curl http://localhost:11434/api/chat -d '{
 ```
 
 ### List Available Models
+
 ```bash
 curl http://localhost:11434/api/tags
 ```
 
 ### Using with Python
+
 ```python
 import requests
 
@@ -308,15 +326,18 @@ ollama-proxy \
 ## Common Issues
 
 ### API Key Issues
+
 - **Error**: "OpenRouter API key is required"
   - **Solution**: Set `OPENROUTER_API_KEY` environment variable or use `--api-key` flag
 
 ### Model Not Found
+
 - **Error**: "Model 'xyz' not found"
   - **Solution**: Check available models with `curl http://localhost:11434/api/tags`
   - Use the exact model name from the list (e.g., "gpt-4:latest")
 
 ### Connection Issues
+
 - **Error**: Connection refused on port 11434
   - **Solution**: Ensure the proxy is running and check the host/port configuration
   - Use `--host 0.0.0.0 --port 8080` to customize binding
@@ -326,6 +347,7 @@ ollama-proxy \
 ### Development Setup
 
 1. **Quick setup with scripts:**
+
    ```bash
    # Unix/Linux/macOS
    ./scripts/dev-setup.sh
@@ -338,6 +360,7 @@ ollama-proxy \
    ```
 
 2. **Manual setup:**
+
    ```bash
    # Install uv (if not already installed)
    curl -LsSf https://astral.sh/uv/install.sh | sh

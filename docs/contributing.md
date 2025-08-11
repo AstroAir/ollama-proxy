@@ -10,7 +10,7 @@ We welcome contributions from the community! Whether you're fixing a bug, adding
 2. **Clone your fork** locally:
 
     ```bash
-    git clone https://github.com/your-username/ollama-proxy.git
+    git clone https://github.com/AstroAir/ollama-proxy.git
     cd ollama-proxy
     ```
 

@@ -17,6 +17,7 @@ The proxy includes multiple entry points and tools:
 ### Main Entry Points
 
 #### `ollama-proxy`
+
 Standard server mode - the primary way to run the proxy in production.
 
 ```bash
@@ -26,6 +27,7 @@ ollama-proxy --api-key sk-or-your-key-here
 ```
 
 #### `ollama-proxy-server`
+
 Alias for the standard server mode.
 
 ```bash
@@ -33,6 +35,7 @@ ollama-proxy-server --host 127.0.0.1 --port 11434
 ```
 
 #### `ollama-proxy-dev`
+
 Development mode with auto-reload and debug logging.
 
 ```bash
@@ -41,6 +44,7 @@ ollama-proxy-dev --host localhost --port 8080
 ```
 
 #### `ollama-proxy-daemon`
+
 Daemon mode for background services and production deployments.
 
 ```bash
@@ -51,6 +55,7 @@ ollama-proxy-daemon --host 0.0.0.0 --port 11434
 ### Administrative Tools
 
 #### `ollama-proxy-admin`
+
 Administrative interface for managing the proxy.
 
 ```bash
@@ -66,6 +71,7 @@ ollama-proxy-admin models
 ```
 
 #### `ollama-proxy-health`
+
 Health check utility for monitoring proxy status.
 
 ```bash
@@ -80,6 +86,7 @@ ollama-proxy-health --host production.example.com --port 11434
 ```
 
 #### `ollama-proxy-config`
+
 Configuration management tool.
 
 ```bash
@@ -98,6 +105,7 @@ ollama-proxy-config --help
 ```
 
 #### `ollama-proxy-benchmark`
+
 Performance benchmarking tool.
 
 ```bash
@@ -117,6 +125,7 @@ ollama-proxy-benchmark --output benchmark-results.json
 ### Development Tools
 
 #### `ollama-proxy-test`
+
 Test runner with various options.
 
 ```bash
@@ -138,6 +147,7 @@ ollama-proxy-test --coverage --html-report
 ```
 
 #### `ollama-proxy-lint`
+
 Code linting tool.
 
 ```bash
@@ -155,6 +165,7 @@ ollama-proxy-lint --stats
 ```
 
 #### `ollama-proxy-format`
+
 Code formatting tool.
 
 ```bash
@@ -174,6 +185,7 @@ ollama-proxy-format --diff
 ## Unified CLI Interface
 
 ### `ollama-proxy-cli`
+
 Unified command-line interface with subcommands for all functionality.
 
 #### Server Management
@@ -275,6 +287,7 @@ ollama-proxy-cli format --check
 ### Unix/Linux/macOS Scripts
 
 #### `scripts/dev-setup.sh`
+
 Complete development environment setup.
 
 ```bash
@@ -284,6 +297,7 @@ Complete development environment setup.
 ```
 
 #### `scripts/start-server.sh`
+
 Cross-platform server startup script.
 
 ```bash
@@ -294,6 +308,7 @@ Cross-platform server startup script.
 ```
 
 #### `scripts/test-runner.sh`
+
 Advanced test runner with multiple options.
 
 ```bash
@@ -305,6 +320,7 @@ Advanced test runner with multiple options.
 ```
 
 #### `scripts/maintenance.sh`
+
 Server maintenance and monitoring script.
 
 ```bash
@@ -315,6 +331,7 @@ Server maintenance and monitoring script.
 ```
 
 #### `scripts/build-deploy.sh`
+
 Build and deployment automation.
 
 ```bash
@@ -327,6 +344,7 @@ Build and deployment automation.
 ### Windows Scripts
 
 #### `scripts/dev-setup.bat`
+
 Windows development environment setup.
 
 ```cmd
@@ -335,6 +353,7 @@ scripts\dev-setup.bat --python-version 3.12
 ```
 
 #### `scripts/start-server.bat`
+
 Windows server startup script.
 
 ```cmd
@@ -344,6 +363,7 @@ scripts\start-server.bat --host 0.0.0.0 --port 8080
 ```
 
 #### `scripts/test-runner.bat`
+
 Windows test runner.
 
 ```cmd
@@ -353,6 +373,7 @@ scripts\test-runner.bat --unit
 ```
 
 #### `scripts/maintenance.bat`
+
 Windows maintenance script.
 
 ```cmd
@@ -364,6 +385,7 @@ scripts\maintenance.bat cleanup
 ### PowerShell Scripts
 
 #### `scripts/start-server.ps1`
+
 PowerShell server startup script.
 
 ```powershell
@@ -375,6 +397,7 @@ PowerShell server startup script.
 ### Universal Python Launcher
 
 #### `scripts/launcher.py`
+
 Cross-platform Python launcher that works on all platforms.
 
 ```bash

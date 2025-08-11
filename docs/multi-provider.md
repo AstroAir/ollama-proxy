@@ -405,11 +405,13 @@ The multi-provider system is fully backward compatible:
 ### Migration Steps
 
 1. **Update Dependencies**:
+
    ```bash
    pip install -r requirements.txt
    ```
 
 2. **Add New Environment Variables**:
+
    ```bash
    # Add provider configurations to .env
    OPENAI_ENABLED=true
@@ -417,6 +419,7 @@ The multi-provider system is fully backward compatible:
    ```
 
 3. **Start Multi-Provider Mode**:
+
    ```bash
    python -m src.main
    ```
